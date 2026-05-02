@@ -209,8 +209,8 @@ export default class LandingScene extends Phaser.Scene {
   updateTakeoff(dt) {
     if (this.takeoffDone) return;
 
-    const terrainY = this.terrainYAt(this.x);
-    const onGround = this.y >= terrainY - 18 && Math.abs(this.vy) < 60;
+    const padTerrainY = this.terrainYAt(this.x);
+    const onGround = this.y >= padTerrainY - 18 && Math.abs(this.vy) < 60;
     const onPad = this.x >= this.padX1 && this.x <= this.padX2;
     const canReenter = this.takeoffPhase === 'manual' && onGround && onPad;
     if (this.reenterPrompt) this.reenterPrompt.setAlpha(canReenter ? 0.95 : 0);
