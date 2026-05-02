@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { WEAPONS } from './weapons.js';
-import { SHIPS } from './constants.js';
-import { ensureHardpointsValid } from './cargo.js';
+import { SHIPS, CARGO, EXOTICS } from './constants.js';
+import { ensureHardpointsValid, maxSlots } from './cargo.js';
 
 const HP_RADIUS = 16;
 const SHIP_SCALE = 6;
@@ -60,15 +60,13 @@ export default class SchematicScene extends Phaser.Scene {
       this.hardpointObjects.push({ id: hp.id, x: wx, y: wy, marker, label });
     }
 
-    this.cargoY = h - 80;
-    this.add.text(w / 2 - 280, this.cargoY - 22, 'CARGO', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff'
-    });
-    this.cargoEmptyText = this.add.text(w / 2 - 230, this.cargoY, '', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: '#5a7090'
-    }).setOrigin(0, 0.5);
+    this.cargoY = h - 90;
+    this.add.text(w / 2, this.cargoY - 32, 'CARGO HOLD', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#88aacc'
+    }).setOrigin(0.5);
 
     this.draggables = [];
+    this.gridArtifacts = [];
     this.renderItems();
 
     this.add.text(w / 2, h - 16, 'F or ESC to close', {
@@ -96,22 +94,84 @@ export default class SchematicScene extends Phaser.Scene {
     }
     this.draggables = [];
 
+    for (const a of this.gridArtifacts) a.destroy();
+    this.gridArtifacts = [];
+
     for (const hp of this.hardpointObjects) {
       const wid = this.state.hardpoints[hp.id];
       if (!wid) continue;
       this.draggables.push(this.makeDraggable(wid, hp.x, hp.y, { source: 'hp', hardpointId: hp.id }));
     }
 
-    const equippedSet = new Set(Object.values(this.state.hardpoints).filter(Boolean));
-    let cx = this.scale.width / 2 - 230;
-    let made = 0;
-    for (const wid of this.state.cargo.weapons) {
-      if (equippedSet.has(wid)) continue;
-      this.draggables.push(this.makeDraggable(wid, cx, this.cargoY, { source: 'cargo' }));
-      cx += 60;
-      made++;
+    this.renderCargoGrid();
+  }
+
+  buildSlotList() {
+    const slots = [];
+    const equipped = new Set(Object.values(this.state.hardpoints).filter(Boolean));
+    for (const w of this.state.cargo.weapons) {
+      if (!equipped.has(w)) slots.push({ kind: 'weapon', id: w });
     }
-    this.cargoEmptyText.setText(made === 0 ? '(all weapons mounted)' : '');
+    for (const e of this.state.cargo.exotics) {
+      slots.push({ kind: 'exotic', id: e });
+    }
+    let oreLeft = this.state.cargo.ore || 0;
+    while (oreLeft > 0) {
+      const qty = Math.min(oreLeft, CARGO.orePerSlot);
+      slots.push({ kind: 'ore', qty });
+      oreLeft -= qty;
+    }
+    let scrapLeft = this.state.cargo.scrap || 0;
+    while (scrapLeft > 0) {
+      const qty = Math.min(scrapLeft, CARGO.scrapPerSlot);
+      slots.push({ kind: 'scrap', qty });
+      scrapLeft -= qty;
+    }
+    return slots;
+  }
+
+  renderCargoGrid() {
+    const slots = this.buildSlotList();
+    const total = maxSlots(this.state);
+    const cols = total <= 8 ? Math.max(4, total) : 8;
+    const cellSize = 32;
+    const gap = 4;
+    const totalWidth = cols * cellSize + (cols - 1) * gap;
+    const startX = this.scale.width / 2 - totalWidth / 2 + cellSize / 2;
+    const startY = this.cargoY;
+
+    for (let i = 0; i < total; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = startX + col * (cellSize + gap);
+      const cy = startY + row * (cellSize + gap);
+
+      const cell = this.add.rectangle(cx, cy, cellSize, cellSize, 0x0a1828, 0.7)
+        .setStrokeStyle(1, 0x3a607a, 0.55);
+      this.gridArtifacts.push(cell);
+
+      if (i >= slots.length) continue;
+      const item = slots[i];
+
+      if (item.kind === 'weapon') {
+        this.draggables.push(this.makeDraggable(item.id, cx, cy, { source: 'cargo' }));
+      } else if (item.kind === 'ore') {
+        const icon = this.add.image(cx, cy - 5, 'ore').setScale(1.4);
+        const label = this.add.text(cx, cy + 9, `${item.qty}`, {
+          fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: '#ffd060'
+        }).setOrigin(0.5);
+        this.gridArtifacts.push(icon, label);
+      } else if (item.kind === 'scrap') {
+        const icon = this.add.image(cx, cy - 5, 'scrap').setScale(1.4);
+        const label = this.add.text(cx, cy + 9, `${item.qty}`, {
+          fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: '#b8b8c8'
+        }).setOrigin(0.5);
+        this.gridArtifacts.push(icon, label);
+      } else if (item.kind === 'exotic') {
+        const icon = this.add.image(cx, cy, EXOTICS[item.id].sprite).setScale(1.6);
+        this.gridArtifacts.push(icon);
+      }
+    }
   }
 
   makeDraggable(weaponId, x, y, info) {
