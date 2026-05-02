@@ -124,15 +124,18 @@ function fireDroneBullet(scene, drone, dx, dy, dist) {
 }
 
 export function damageDrone(scene, drone, dmg) {
+  if (!drone || !drone.active || drone.dying) return;
   drone.hp -= dmg;
   if (drone.hp <= 0) {
+    drone.dying = true;
     const x = drone.x, y = drone.y;
     const drop = DROPS.drone;
     const n = Phaser.Math.Between(drop.scrapMin, drop.scrapMax);
     for (let i = 0; i < n; i++) spawnScrap(scene, x, y);
     scene.tweens.add({ targets: drone, alpha: 0, duration: 80, onComplete: () => {
-      drone.disableBody(true, true);
-      drone.destroy();
+      if (!drone.active && !drone.body) return;
+      if (drone.body) drone.disableBody(true, true);
+      if (drone.scene) drone.destroy();
     }});
   } else {
     scene.tweens.add({ targets: drone, alpha: 0.4, duration: 50, yoyo: true });

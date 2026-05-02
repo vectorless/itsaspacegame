@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
   VIEW_W, VIEW_H, WORLD_W, WORLD_H,
   ASTEROID_COUNT, MISSILE, BLASTER, RAILGUN, HOMING,
-  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, POWER
+  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, ENERGY
 } from './constants.js';
 import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
@@ -174,7 +174,7 @@ export default class SpaceScene extends Phaser.Scene {
       cargo: freshCargo(),
       ammo: freshAmmo(),
       speed: 0,
-      ore: 0,
+      ore: 1000,
       shield: ship.maxShield,
       maxShield: ship.maxShield,
       hull: ship.maxHull,
@@ -184,8 +184,8 @@ export default class SpaceScene extends Phaser.Scene {
       hasPortalDevice: false,
       magnetLevel: 1,
       shieldLevel: 0,
-      power: POWER.max,
-      maxPower: POWER.max,
+      energy: ENERGY.max,
+      maxEnergy: ENERGY.max,
       charging: false
     };
     autoEquipFromCargo(state);
@@ -287,10 +287,10 @@ export default class SpaceScene extends Phaser.Scene {
     const sdy = this.controller.y - by;
     const sdist = Math.hypot(sdx, sdy);
     if (sdist >= BLACKHOLE.chargeBandMin && sdist <= BLACKHOLE.chargeBandMax
-        && this.gameState.power < this.gameState.maxPower) {
-      this.gameState.power = Math.min(
-        this.gameState.maxPower,
-        this.gameState.power + POWER.chargePerSec * dtSec
+        && this.gameState.energy < this.gameState.maxEnergy) {
+      this.gameState.energy = Math.min(
+        this.gameState.maxEnergy,
+        this.gameState.energy + ENERGY.chargePerSec * dtSec
       );
       this.gameState.charging = true;
     } else {
@@ -340,28 +340,28 @@ export default class SpaceScene extends Phaser.Scene {
 
     if (this.asteroidGroup) {
       this.asteroidGroup.children.iterate((a) => {
-        if (!a || !a.active) return;
+        if (!a || !a.active || !a.body) return;
         const consumed = pullBody(a);
-        if (consumed) { a.disableBody(true, true); a.destroy(); }
+        if (consumed && a.active && a.body) { a.disableBody(true, true); a.destroy(); }
       });
     }
     if (this.collectables) {
       this.collectables.children.iterate((co) => {
-        if (!co || !co.active) return;
+        if (!co || !co.active || !co.body) return;
         const consumed = pullBody(co);
-        if (consumed) { co.disableBody(true, true); co.destroy(); }
+        if (consumed && co.active && co.body) { co.disableBody(true, true); co.destroy(); }
       });
     }
     if (this.enemies) {
       this.enemies.children.iterate((e) => {
-        if (!e || !e.active) return;
+        if (!e || !e.active || !e.body) return;
         const consumed = pullBody(e);
         if (consumed) damageEnemy(this, e, 999);
       });
     }
     if (this.drones) {
       this.drones.children.iterate((d) => {
-        if (!d || !d.active) return;
+        if (!d || !d.active || !d.body) return;
         const consumed = pullBody(d);
         if (consumed) damageDrone(this, d, 999);
       });
@@ -565,11 +565,11 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.gameState.gameOver) return;
     if (this.time.now - this.lastHitTime < SHIP.shieldRegenDelayMs) return;
     if (this.gameState.shield >= this.gameState.maxShield) return;
-    if (this.gameState.power <= 0) return;
+    if (this.gameState.energy <= 0) return;
     const want = SHIP.shieldRegenPerSec * dtSec;
-    const delta = Math.min(want, this.gameState.maxShield - this.gameState.shield, this.gameState.power / POWER.shieldRegenCost);
+    const delta = Math.min(want, this.gameState.maxShield - this.gameState.shield, this.gameState.energy / ENERGY.shieldRegenCost);
     this.gameState.shield += delta;
-    this.gameState.power = Math.max(0, this.gameState.power - delta * POWER.shieldRegenCost);
+    this.gameState.energy = Math.max(0, this.gameState.energy - delta * ENERGY.shieldRegenCost);
   }
 
   updatePortal() {

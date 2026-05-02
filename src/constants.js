@@ -290,7 +290,7 @@ export const BLACKHOLE = {
   chargeBandMax: 320
 };
 
-export const POWER = {
+export const ENERGY = {
   max: 100,
   shieldRegenCost: 1,
   chargePerSec: 35,

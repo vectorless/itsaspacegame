@@ -28,10 +28,10 @@ export default class HUDScene extends Phaser.Scene {
     this.hullBar = this.add.rectangle(13, 63, BAR_W - 2, BAR_H - 2, COLORS.hullBar, 0.95)
       .setOrigin(0, 0);
 
-    this.powerLabel = this.add.text(12, 78, 'POWER', { ...style, color: '#88ffaa' });
-    this.powerBarBg = this.add.rectangle(12, 96, BAR_W, BAR_H, 0x102818, 0.85)
+    this.energyLabel = this.add.text(12, 78, 'ENERGY', { ...style, color: '#88ffaa' });
+    this.energyBarBg = this.add.rectangle(12, 96, BAR_W, BAR_H, 0x102818, 0.85)
       .setOrigin(0, 0).setStrokeStyle(1, 0x3a7a4a);
-    this.powerBar = this.add.rectangle(13, 97, BAR_W - 2, BAR_H - 2, 0x66ff88, 0.95)
+    this.energyBar = this.add.rectangle(13, 97, BAR_W - 2, BAR_H - 2, 0x66ff88, 0.95)
       .setOrigin(0, 0);
     this.chargingText = this.add.text(BAR_W + 20, 78, '', { ...style, color: '#a080ff', fontSize: '12px' });
 
@@ -76,9 +76,9 @@ export default class HUDScene extends Phaser.Scene {
     this.shieldLabel.setText(`SHIELD  ${Math.round(state.shield)} / ${state.maxShield}`);
     this.hullLabel.setText(`HULL  ${Math.round(state.hull)} / ${state.maxHull}`);
 
-    const pFrac = Phaser.Math.Clamp((state.power ?? 0) / (state.maxPower ?? 100), 0, 1);
-    this.powerBar.width = (BAR_W - 2) * pFrac;
-    this.powerLabel.setText(`POWER  ${Math.round(state.power ?? 0)} / ${state.maxPower ?? 100}`);
+    const eFrac = Phaser.Math.Clamp((state.energy ?? 0) / (state.maxEnergy ?? 100), 0, 1);
+    this.energyBar.width = (BAR_W - 2) * eFrac;
+    this.energyLabel.setText(`ENERGY  ${Math.round(state.energy ?? 0)} / ${state.maxEnergy ?? 100}`);
     this.chargingText.setText(state.charging ? '◆ CHARGING' : '');
 
     this.shipText.setText(`Ship:   ${ship.name}`);

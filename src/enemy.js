@@ -119,15 +119,20 @@ function fireOne(scene, e, ang, cfg) {
 }
 
 export function damageEnemy(scene, enemy, dmg) {
+  if (!enemy || !enemy.active || enemy.dying) return;
   enemy.hp -= dmg;
   scene.tweens.add({
     targets: enemy, alpha: 0.4, duration: 60, yoyo: true,
-    onComplete: () => enemy.setAlpha(1)
+    onComplete: () => { if (enemy && enemy.active) enemy.setAlpha(1); }
   });
-  if (enemy.hp <= 0) destroyEnemy(scene, enemy);
+  if (enemy.hp <= 0) {
+    enemy.dying = true;
+    destroyEnemy(scene, enemy);
+  }
 }
 
 function destroyEnemy(scene, enemy) {
+  if (!enemy || !enemy.scene) return;
   const isElite = enemy.kind === 'elite';
   const drop = isElite ? DROPS.elite : DROPS.regular;
 
