@@ -39,13 +39,16 @@ const TURRET = {
 };
 
 const WAVES = [
-  { count: 5,  pattern: 'straight' },
-  { count: 7,  pattern: 'sine' },
-  { count: 8,  pattern: 'mixed' },
-  { count: 10, pattern: 'sine' },
-  { count: 12, pattern: 'mixed' },
-  { count: 14, pattern: 'mixed' }
+  { count: 3, pattern: 'straight' },
+  { count: 4, pattern: 'sine' },
+  { count: 5, pattern: 'mixed' },
+  { count: 6, pattern: 'sine' },
+  { count: 7, pattern: 'mixed' },
+  { count: 8, pattern: 'mixed' }
 ];
+
+const WAVE_SPAWN_INTERVAL_MS = 1100;
+const WAVE_LEAD_DELAY_MS = 700;
 
 class SimpleProjectile extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, texture) {
@@ -161,7 +164,7 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.waveActive = true;
     const w = WAVES[this.waveIdx];
     for (let i = 0; i < w.count; i++) {
-      this.time.delayedCall(i * 600 + 500, () => this.spawnEnemy(w.pattern));
+      this.time.delayedCall(i * WAVE_SPAWN_INTERVAL_MS + WAVE_LEAD_DELAY_MS, () => this.spawnEnemy(w.pattern));
     }
     this.flashTitle(`WAVE ${this.waveIdx + 1} of ${WAVES.length}`);
   }
