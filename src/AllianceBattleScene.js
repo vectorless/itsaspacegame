@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
-import { SHIPS } from './constants.js';
+import { SHIPS, MISSILE, BLASTER, RAILGUN, HOMING } from './constants.js';
 import { MISSIONS } from './missions.js';
-import { ensureGameState, resetAfterDeath } from './state.js';
+import { ensureGameState, resetAfterDeath, completeMission } from './state.js';
+import { WEAPONS, nextWeaponId } from './weapons.js';
+import { getEquippedWeapons } from './cargo.js';
 
 const SCROLL_SPEED = 80;
 const WORLD_WIDTH = 4800;
@@ -13,10 +15,7 @@ const PLAYER = {
   speedX: 280,
   speedY: 240,
   drag: 0.92,
-  fireCooldownMs: 150,
   bombCooldownMs: 350,
-  bulletSpeed: 600,
-  bulletTtlMs: 900,
   bombGravity: 600,
   contactDmg: 25
 };
@@ -50,16 +49,46 @@ const WAVES = [
 const WAVE_SPAWN_INTERVAL_MS = 1100;
 const WAVE_LEAD_DELAY_MS = 700;
 
-class SimpleProjectile extends Phaser.Physics.Arcade.Sprite {
+function nearestActive(group, x, y) {
+  let best = null, bestD2 = Infinity;
+  group.children.iterate((e) => {
+    if (!e || !e.active) return;
+    const dx = e.x - x, dy = e.y - y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < bestD2) { bestD2 = d2; best = e; }
+  });
+  return best;
+}
+
+class Projectile extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, texture) {
     super(scene, x, y, texture);
     this.expireAt = 0;
+    this.damage = 1;
+    this.homing = false;
+    this.piercesLeft = 1;
+    this.hitTargets = null;
   }
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
     if (!this.active) return;
     if (this.expireAt > 0 && time >= this.expireAt) {
       this.disableBody(true, true);
+      return;
+    }
+    if (this.homing) {
+      const target = nearestActive(this.scene.enemies, this.x, this.y);
+      if (!target) return;
+      const dt = delta / 1000;
+      const ta = Math.atan2(target.y - this.y, target.x - this.x);
+      const cur = Math.atan2(this.body.velocity.y, this.body.velocity.x);
+      const diff = Phaser.Math.Angle.Wrap(ta - cur);
+      const turn = Phaser.Math.Clamp(diff, -HOMING.turnRate * dt, HOMING.turnRate * dt);
+      const nu = cur + turn;
+      const speed = Math.hypot(this.body.velocity.x, this.body.velocity.y);
+      this.body.velocity.x = Math.cos(nu) * speed;
+      this.body.velocity.y = Math.sin(nu) * speed;
+      this.setRotation(nu);
     }
   }
 }
@@ -90,28 +119,45 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.player.setRotation(0);
 
     this.bullets = this.physics.add.group({
-      classType: SimpleProjectile, defaultKey: 'bullet',
-      maxSize: 80, runChildUpdate: true
+      classType: Projectile, defaultKey: 'bullet',
+      maxSize: BLASTER.poolMax, runChildUpdate: true
+    });
+    this.missiles = this.physics.add.group({
+      classType: Projectile, defaultKey: 'missile',
+      maxSize: MISSILE.poolMax, runChildUpdate: true
+    });
+    this.railShots = this.physics.add.group({
+      classType: Projectile, defaultKey: 'railshot',
+      maxSize: RAILGUN.poolMax, runChildUpdate: true
     });
     this.bombs = this.physics.add.group({
-      classType: SimpleProjectile, defaultKey: 'bomb',
+      classType: Projectile, defaultKey: 'bomb',
       maxSize: 30, runChildUpdate: true
     });
     this.enemies = this.physics.add.group();
     this.enemyBullets = this.physics.add.group({
-      classType: SimpleProjectile, defaultKey: 'enemy_bullet',
+      classType: Projectile, defaultKey: 'enemy_bullet',
       maxSize: 40, runChildUpdate: true
     });
     this.turrets = this.physics.add.staticGroup();
     this.spawnTurrets();
 
-    this.physics.add.overlap(this.bullets, this.enemies, this.onBulletHitEnemy, null, this);
-    this.physics.add.overlap(this.bullets, this.turrets, this.onBulletHitTurret, null, this);
+    this.physics.add.overlap(this.bullets, this.enemies, this.onProjHitEnemy, null, this);
+    this.physics.add.overlap(this.missiles, this.enemies, this.onProjHitEnemy, null, this);
+    this.physics.add.overlap(this.railShots, this.enemies, this.onProjHitEnemy, null, this);
+    this.physics.add.overlap(this.bullets, this.turrets, this.onProjHitTurret, null, this);
+    this.physics.add.overlap(this.missiles, this.turrets, this.onProjHitTurret, null, this);
+    this.physics.add.overlap(this.railShots, this.turrets, this.onProjHitTurret, null, this);
     this.physics.add.overlap(this.bombs, this.turrets, this.onBombHitTurret, null, this);
     this.physics.add.overlap(this.player, this.enemies, this.onPlayerHitEnemy, null, this);
     this.physics.add.overlap(this.player, this.enemyBullets, this.onPlayerHitEnemyBullet, null, this);
 
-    this.keys = this.input.keyboard.addKeys('A,D,W,S,LEFT,RIGHT,UP,DOWN,SPACE,SHIFT');
+    this.keys = this.input.keyboard.addKeys('A,D,W,S,E,F,LEFT,RIGHT,UP,DOWN,SPACE,SHIFT');
+
+    const equipped = getEquippedWeapons(this.gameState);
+    if (equipped.length > 0 && !equipped.includes(this.gameState.currentWeapon)) {
+      this.gameState.currentWeapon = equipped[0];
+    }
 
     this.lastFire = 0;
     this.lastBomb = 0;
@@ -122,6 +168,10 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.waveIdx = -1;
     this.waveActive = false;
     this.startNextWave();
+
+    this.events.on('resume', () => {
+      this.input.setDefaultCursor('crosshair');
+    });
   }
 
   drawBackground() {
@@ -188,13 +238,14 @@ export default class AllianceBattleScene extends Phaser.Scene {
   makeHud() {
     const style = { fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff' };
     this.hudHull = this.add.text(12, 8, '', { ...style, color: '#ffb8b8' }).setScrollFactor(0).setDepth(100);
-    this.hudWave = this.add.text(12, 28, '', { ...style, color: '#ffe28a' }).setScrollFactor(0).setDepth(100);
-    this.hudTargets = this.add.text(12, 48, '', { ...style, color: '#88ffaa' }).setScrollFactor(0).setDepth(100);
-    this.hudHelp = this.add.text(VIEW_W / 2, VIEW_H - 14, 'A/D/W/S move • Click/Space fire • Shift / Right-click bomb', {
-      ...style, color: '#5a7090', fontSize: '11px'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
-    this.titleText = this.add.text(VIEW_W / 2, 60, '', {
-      ...style, color: '#ffe28a', fontSize: '24px'
+    this.hudWeapon = this.add.text(12, 28, '', { ...style, color: '#cfe6ff' }).setScrollFactor(0).setDepth(100);
+    this.hudWave = this.add.text(12, 48, '', { ...style, color: '#ffe28a' }).setScrollFactor(0).setDepth(100);
+    this.hudTargets = this.add.text(12, 68, '', { ...style, color: '#88ffaa' }).setScrollFactor(0).setDepth(100);
+    this.hudHelp = this.add.text(VIEW_W / 2, VIEW_H - 14,
+      'WASD/arrows move • Click/Space fire • Shift / Right-click bomb • E weapon • F loadout',
+      { ...style, color: '#5a7090', fontSize: '11px' }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+    this.titleText = this.add.text(VIEW_W / 2, 70, '', {
+      ...style, color: '#ffe28a', fontSize: '22px'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
   }
 
@@ -208,6 +259,12 @@ export default class AllianceBattleScene extends Phaser.Scene {
     if (this.outcomeShown) return;
     const dt = Math.min(deltaMs, 33) / 1000;
     const k = this.keys;
+
+    if (Phaser.Input.Keyboard.JustDown(k.F)) {
+      this.scene.pause();
+      this.scene.launch('SchematicScene', { from: 'AllianceBattleScene' });
+      return;
+    }
 
     this.cameras.main.scrollX += SCROLL_SPEED * dt;
 
@@ -234,12 +291,18 @@ export default class AllianceBattleScene extends Phaser.Scene {
     if (this.player.y > GROUND_Y - 12) { this.player.y = GROUND_Y - 12; v.y = Math.min(0, v.y); }
     if (this.player.y < 30) { this.player.y = 30; v.y = Math.max(0, v.y); }
 
+    const equipped = getEquippedWeapons(this.gameState);
+    if (equipped.length > 0 && !equipped.includes(this.gameState.currentWeapon)) {
+      this.gameState.currentWeapon = equipped[0];
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(k.E)) {
+      this.gameState.currentWeapon = nextWeaponId(this.gameState.currentWeapon, equipped);
+    }
+
     const pointer = this.input.activePointer;
     const fireHeld = k.SPACE.isDown || pointer.leftButtonDown();
-    if (fireHeld && time - this.lastFire >= PLAYER.fireCooldownMs) {
-      this.firePlayerBullet();
-      this.lastFire = time;
-    }
+    if (fireHeld) this.tryFireWeapon(time);
 
     const bombHeld = k.SHIFT.isDown || pointer.rightButtonDown();
     if (bombHeld && time - this.lastBomb >= PLAYER.bombCooldownMs) {
@@ -251,6 +314,10 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.updateTurrets(time);
 
     this.hudHull.setText(`HULL  ${Math.round(this.gameState.hull)} / ${this.gameState.maxHull}`);
+    const w = WEAPONS[this.gameState.currentWeapon];
+    const ammo = this.gameState.ammo[this.gameState.currentWeapon];
+    const ammoTxt = w ? (Number.isFinite(ammo) ? `${ammo}` : '∞') : '—';
+    this.hudWeapon.setText(`WEAPON  ${w ? w.name : '—'}  (${ammoTxt})`);
     const remaining = this.enemies.countActive(true);
     this.hudWave.setText(`WAVE  ${this.waveIdx + 1} / ${WAVES.length}    Enemies: ${remaining}`);
     const aliveTurrets = this.turretObjs.filter((t) => t.active).length;
@@ -262,15 +329,25 @@ export default class AllianceBattleScene extends Phaser.Scene {
     }
   }
 
-  firePlayerBullet() {
-    const b = this.bullets.get();
-    if (!b) return;
-    b.setActive(true).setVisible(true);
-    b.body.enable = true;
-    b.body.setAllowGravity(false);
-    b.setPosition(this.player.x + 18, this.player.y);
-    b.setVelocity(PLAYER.bulletSpeed, 0);
-    b.expireAt = this.time.now + PLAYER.bulletTtlMs;
+  tryFireWeapon(time) {
+    const id = this.gameState.currentWeapon;
+    if (!id || id === 'mining_laser') return;
+    const w = WEAPONS[id];
+    if (!w || !w.fire || time - this.lastFire < w.cooldownMs) return;
+    const ammo = this.gameState.ammo[id];
+    if (Number.isFinite(ammo) && ammo <= 0) return;
+
+    const shipObj = {
+      x: this.player.x,
+      y: this.player.y,
+      vx: this.player.body.velocity.x,
+      vy: this.player.body.velocity.y,
+      angle: 0,
+      aimAngle: 0
+    };
+    w.fire(this, shipObj);
+    if (Number.isFinite(ammo)) this.gameState.ammo[id] = ammo - 1;
+    this.lastFire = time;
   }
 
   firePlayerBomb() {
@@ -283,6 +360,9 @@ export default class AllianceBattleScene extends Phaser.Scene {
     b.setVelocity(this.player.body.velocity.x * 0.5, 60);
     b.body.setAccelerationY(PLAYER.bombGravity);
     b.expireAt = this.time.now + 4000;
+    b.damage = 2;
+    b.piercesLeft = 1;
+    b.hitTargets = new Set();
   }
 
   updateEnemies(time, dt) {
@@ -339,24 +419,30 @@ export default class AllianceBattleScene extends Phaser.Scene {
     }
   }
 
-  onBulletHitEnemy(bullet, enemy) {
-    if (!bullet.active || !enemy.active) return;
-    bullet.disableBody(true, true);
-    enemy.hp -= 1;
+  onProjHitEnemy(proj, enemy) {
+    if (!proj.active || !enemy.active) return;
+    if (proj.hitTargets && proj.hitTargets.has(enemy)) return;
+    proj.hitTargets?.add(enemy);
+    enemy.hp -= proj.damage ?? 1;
     this.tweens.add({ targets: enemy, alpha: 0.4, duration: 50, yoyo: true });
     if (enemy.hp <= 0) enemy.disableBody(true, true);
+    proj.piercesLeft = (proj.piercesLeft ?? 1) - 1;
+    if (proj.piercesLeft <= 0) proj.disableBody(true, true);
   }
 
-  onBulletHitTurret(bullet, turret) {
-    if (!bullet.active || !turret.active) return;
-    bullet.disableBody(true, true);
-    turret.hp -= 1;
+  onProjHitTurret(proj, turret) {
+    if (!proj.active || !turret.active) return;
+    if (proj.hitTargets && proj.hitTargets.has(turret)) return;
+    proj.hitTargets?.add(turret);
+    turret.hp -= proj.damage ?? 1;
     this.tweens.add({ targets: turret, alpha: 0.5, duration: 50, yoyo: true });
     if (turret.hp <= 0) {
       turret.setActive(false).setVisible(false);
       this.cameras.main.shake(80, 0.003);
       this.checkWin();
     }
+    proj.piercesLeft = (proj.piercesLeft ?? 1) - 1;
+    if (proj.piercesLeft <= 0) proj.disableBody(true, true);
   }
 
   onBombHitTurret(bomb, turret) {
@@ -400,13 +486,8 @@ export default class AllianceBattleScene extends Phaser.Scene {
     if (this.outcomeShown) return;
     this.outcomeShown = true;
     const m = MISSIONS[this.missionId];
-    if (m) {
-      this.gameState.credits += m.reward;
-      this.gameState.missions[this.missionId] = 'completed';
-      if (typeof m.onComplete === 'function') m.onComplete(this.gameState);
-      if (Array.isArray(m.physicalRewards) && m.physicalRewards.length) {
-        this.gameState.starbasePickups = (this.gameState.starbasePickups || []).concat(m.physicalRewards);
-      }
+    if (m && this.gameState.missions[this.missionId] === 'accepted') {
+      completeMission(this.gameState, this.missionId);
     }
     this.showVictoryScreen(m);
   }
@@ -478,20 +559,50 @@ export default class AllianceBattleScene extends Phaser.Scene {
   fail() {
     if (this.outcomeShown) return;
     this.outcomeShown = true;
-    this.add.rectangle(0, 0, VIEW_W, VIEW_H, 0x000000, 0.6).setOrigin(0, 0).setScrollFactor(0).setDepth(120);
-    this.add.text(VIEW_W / 2, VIEW_H / 2 - 30, 'MISSION FAILED', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '36px', color: '#ff6060'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(121);
-    this.add.text(VIEW_W / 2, VIEW_H / 2 + 12, 'Hull breached. Returning to starbase.', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(121);
-    this.time.delayedCall(2000, () => {
-      resetAfterDeath(this.gameState);
-      this.input.setDefaultCursor('default');
-      const space = this.scene.get('SpaceScene');
-      if (space && space.scene.isPaused()) space.scene.stop();
-      this.scene.stop();
-      this.scene.start('StarbaseScene');
-    });
+    this.showFailScreen();
+  }
+
+  showFailScreen() {
+    const w = VIEW_W, h = VIEW_H;
+    const cx = w / 2, cy = h / 2;
+
+    const overlay = this.add.rectangle(0, 0, w, h, 0x140404, 0).setOrigin(0, 0).setScrollFactor(0).setDepth(120);
+    this.tweens.add({ targets: overlay, alpha: 0.78, duration: 600 });
+
+    const panel = this.add.rectangle(cx, cy, 480, 240, 0x1a1010, 0).setStrokeStyle(2, 0xff6060, 0.9).setScrollFactor(0).setDepth(121);
+    this.tweens.add({ targets: panel, alpha: 0.96, duration: 700, delay: 300 });
+
+    const title = this.add.text(cx, cy - 60, 'MISSION FAILED', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '32px', color: '#ff6060'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0).setScale(0.3);
+    this.tweens.add({ targets: title, alpha: 1, scale: 1, duration: 600, ease: 'Back.easeOut', delay: 600 });
+
+    const reason = this.add.text(cx, cy - 18, 'Hull breached', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#ffb8b8'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: reason, alpha: 1, duration: 400, delay: 1200 });
+
+    const next = this.add.text(cx, cy + 18, 'Recovery shuttle inbound. Returning to the starbase.', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#cfe6ff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: next, alpha: 1, duration: 400, delay: 1700 });
+
+    const note = this.add.text(cx, cy + 50, '(mission stays accepted — return to the gold marker to retry)', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: '#88aacc'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: note, alpha: 1, duration: 400, delay: 2200 });
+
+    this.time.delayedCall(3000, () => this.exitToStarbase());
+  }
+
+  exitToStarbase() {
+    if (this.exiting) return;
+    this.exiting = true;
+    resetAfterDeath(this.gameState);
+    this.input.setDefaultCursor('default');
+    if (this.scene.isPaused('SpaceScene') || this.scene.isActive('SpaceScene')) {
+      this.scene.stop('SpaceScene');
+    }
+    this.scene.start('StarbaseScene');
   }
 }

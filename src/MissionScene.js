@@ -82,7 +82,12 @@ export default class MissionScene extends Phaser.Scene {
         actionColor = '#5a7090';
         fn = null;
       } else if (status === 'accepted') {
-        actionLabel = 'ACTIVE\nfind the gold marker';
+        if (m.type === 'progress') {
+          const cur = this.state.missionProgress?.[id] ?? 0;
+          actionLabel = `ACTIVE\n${cur} / ${m.target} ${m.unit ?? ''}`.trim();
+        } else {
+          actionLabel = 'ACTIVE\nfind the gold marker';
+        }
         actionColor = '#ffaa50';
         fn = null;
       } else {

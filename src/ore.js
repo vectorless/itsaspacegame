@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ORE, MAGNET, EXOTICS } from './constants.js';
 import { addItem, canAdd } from './cargo.js';
+import { progressMission } from './state.js';
 
 function spawnCollectable(scene, x, y, texture, kind, payload) {
   const o = scene.collectables.create(x, y, texture);
@@ -51,7 +52,13 @@ function fitsCargo(state, c) {
 
 function collect(scene, c) {
   const state = scene.gameState;
-  if (c.kind === 'ore') return addItem(state, 'ore', null, 1) !== false;
+  if (c.kind === 'ore') {
+    const added = addItem(state, 'ore', null, 1);
+    if (added === false || added === 0) return false;
+    const completed = progressMission(state, 'mine_ore', 1);
+    if (completed && scene.flashMissionComplete) scene.flashMissionComplete('mine_ore');
+    return true;
+  }
   if (c.kind === 'scrap') return addItem(state, 'scrap', null, 1) !== false;
   if (c.kind === 'exotic') return addItem(state, 'exotic', c.payload);
   if (c.kind === 'weapon') return addItem(state, 'weapon', c.payload);

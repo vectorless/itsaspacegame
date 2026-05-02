@@ -260,6 +260,12 @@ export default class StarbaseScene extends Phaser.Scene {
       c.flip();
     }
 
+    if (Phaser.Input.Keyboard.JustDown(k.F)) {
+      this.scene.pause();
+      this.scene.launch('SchematicScene', { from: 'StarbaseScene' });
+      return;
+    }
+
     c.x += c.vx * dt;
     this.resolveX(c);
 

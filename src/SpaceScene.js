@@ -9,7 +9,7 @@ import { WEAPONS, nextWeaponId } from './weapons.js';
 import { spawnAsteroid, damageAsteroid } from './asteroids.js';
 import { updateOre } from './ore.js';
 import { freshCargo, freshAmmo, autoEquipFromCargo, ensureHardpointsValid, getEquippedWeapons, addItem } from './cargo.js';
-import { ensureGameState, resetAfterDeath, snapshotCargoToWreck } from './state.js';
+import { ensureGameState, resetAfterDeath, snapshotCargoToWreck, progressMission } from './state.js';
 import { MISSIONS } from './missions.js';
 import { spawnEnemyAtRing, spawnElite, updateEnemies, damageEnemy } from './enemy.js';
 import { spawnDroneSwarm, updateDrones, damageDrone } from './drones.js';
@@ -240,6 +240,7 @@ export default class SpaceScene extends Phaser.Scene {
     const cx = WORLD_W / 2, cy = WORLD_H / 2;
     for (const id of Object.keys(this.gameState.missions)) {
       if (this.gameState.missions[id] !== 'accepted') continue;
+      if (!MISSIONS[id]?.sceneKey) continue;
       let x, y, tries = 0;
       do {
         x = Phaser.Math.Between(500, WORLD_W - 500);
@@ -464,7 +465,7 @@ export default class SpaceScene extends Phaser.Scene {
   openSchematic() {
     if (this.scene.isActive('SchematicScene')) return;
     this.scene.pause();
-    this.scene.launch('SchematicScene');
+    this.scene.launch('SchematicScene', { from: 'SpaceScene' });
   }
 
   onShipDockBase(_ship, _base) {
@@ -663,10 +664,22 @@ export default class SpaceScene extends Phaser.Scene {
         const added = addItem(this.gameState, 'ore', null, 1);
         if (added === false || added === 0) { this.miningExtractAccum = 0; break; }
         this.miningExtractAccum -= 1;
+        const done = progressMission(this.gameState, 'mine_ore', 1);
+        if (done) this.flashMissionComplete('mine_ore');
       }
     } else {
       this.miningExtractAccum = 0;
     }
+  }
+
+  flashMissionComplete(missionId) {
+    const m = MISSIONS[missionId];
+    if (!m) return;
+    const txt = this.add.text(this.scale.width / 2, 80,
+      `MISSION COMPLETE\n${m.name}\n+${m.reward.toLocaleString()} cr`,
+      { fontFamily: 'system-ui, sans-serif', fontSize: '16px', color: '#88ffaa', align: 'center', backgroundColor: '#001020', padding: { x: 12, y: 8 } }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+    this.tweens.add({ targets: txt, alpha: 0, y: 56, duration: 4500, ease: 'Cubic.easeIn', onComplete: () => txt.destroy() });
   }
 
   spawnDeathSites() {

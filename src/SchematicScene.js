@@ -26,6 +26,10 @@ function weaponTint(id) {
 export default class SchematicScene extends Phaser.Scene {
   constructor() { super('SchematicScene'); }
 
+  init(data = {}) {
+    this.fromScene = data.from ?? 'SpaceScene';
+  }
+
   create() {
     this.scene.bringToTop();
     this.state = this.registry.get('gameState');
@@ -229,8 +233,9 @@ export default class SchematicScene extends Phaser.Scene {
   }
 
   close() {
-    this.input.setDefaultCursor('none');
+    if (this.fromScene === 'SpaceScene') this.input.setDefaultCursor('none');
+    else this.input.setDefaultCursor('default');
     this.scene.stop('SchematicScene');
-    this.scene.resume('SpaceScene');
+    this.scene.run(this.fromScene);
   }
 }

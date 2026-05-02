@@ -1,5 +1,6 @@
 import { SHIPS, ENERGY, MISSILE } from './constants.js';
 import { autoEquipFromCargo } from './cargo.js';
+import { MISSIONS } from './missions.js';
 
 export function freshGameState() {
   const shipId = 'cruiser';
@@ -24,8 +25,9 @@ export function freshGameState() {
     maxEnergy: ENERGY.max,
     charging: false,
     deathSites: [],
-    missions: { support_alliance: 'available' },
+    missions: { support_alliance: 'available', mine_ore: 'available' },
     missionFlags: {},
+    missionProgress: {},
     starbasePickups: []
   };
   autoEquipFromCargo(state);
@@ -58,6 +60,30 @@ export function resetAfterDeath(state) {
   state.gameOver = false;
   state.currentWeapon = 'blaster';
   autoEquipFromCargo(state);
+}
+
+export function completeMission(state, id) {
+  const m = MISSIONS[id];
+  if (!m) return;
+  state.missions[id] = 'completed';
+  state.credits += m.reward;
+  if (typeof m.onComplete === 'function') m.onComplete(state);
+  if (Array.isArray(m.physicalRewards) && m.physicalRewards.length) {
+    state.starbasePickups = (state.starbasePickups || []).concat(m.physicalRewards);
+  }
+}
+
+export function progressMission(state, id, amount = 1) {
+  if (!state.missions || state.missions[id] !== 'accepted') return false;
+  const m = MISSIONS[id];
+  if (!m || !m.target) return false;
+  state.missionProgress = state.missionProgress || {};
+  state.missionProgress[id] = (state.missionProgress[id] || 0) + amount;
+  if (state.missionProgress[id] >= m.target) {
+    completeMission(state, id);
+    return true;
+  }
+  return false;
 }
 
 export function snapshotCargoToWreck(state, survivalChance = 0.6) {

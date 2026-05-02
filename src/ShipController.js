@@ -20,12 +20,17 @@ export default class ShipController {
 
   thrust(dtSec, forwardHeld) {
     if (!forwardHeld) return;
-    this.vx += Math.cos(this.angle) * this.config.accel * dtSec;
-    this.vy += Math.sin(this.angle) * this.config.accel * dtSec;
-
     const speed = Math.hypot(this.vx, this.vy);
-    if (speed > this.config.maxSpeed) {
-      const k = this.config.maxSpeed / speed;
+    const fwdSpeed = this.vx * Math.cos(this.angle) + this.vy * Math.sin(this.angle);
+    const ratio = Math.max(0, Math.min(1, fwdSpeed / this.config.maxSpeed));
+    const falloff = Math.max(0.05, 1 - ratio * ratio);
+    const a = this.config.accel * falloff;
+    this.vx += Math.cos(this.angle) * a * dtSec;
+    this.vy += Math.sin(this.angle) * a * dtSec;
+
+    const newSpeed = Math.hypot(this.vx, this.vy);
+    if (newSpeed > this.config.maxSpeed) {
+      const k = this.config.maxSpeed / newSpeed;
       this.vx *= k;
       this.vy *= k;
     }
