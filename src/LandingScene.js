@@ -8,7 +8,11 @@ export default class LandingScene extends Phaser.Scene {
   }
 
   init(data = {}) {
-    this.mode = data.mode ?? 'land';
+    this.mode = data && data.mode === 'takeoff' ? 'takeoff' : 'land';
+    this.canEnterStarbase = false;
+    this.outcomeShown = false;
+    this.takeoffDone = false;
+    this.takeoffPhase = null;
   }
 
   create() {

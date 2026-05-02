@@ -481,7 +481,7 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.scene.isActive('LandingScene') || this.scene.isActive('ShopScene')) return;
     this.dockCooldownUntil = this.time.now + LANDING.dockCooldownMs;
     this.scene.pause();
-    this.scene.launch('LandingScene');
+    this.scene.launch('LandingScene', { mode: 'land' });
   }
 
   onProjHitAsteroid(proj, asteroid) {
