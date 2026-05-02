@@ -320,16 +320,21 @@ export default class LandingScene extends Phaser.Scene {
     state.credits += LANDING.rewardOre + cargoEarnings;
 
     this.add.rectangle(0, 0, w, h, 0x000000, 0.45).setOrigin(0, 0).setDepth(20);
-    this.add.text(w / 2, h / 2 - 36, 'TOUCHDOWN', {
+    this.add.text(w / 2, h / 2 - 50, 'TOUCHDOWN', {
       fontFamily: 'system-ui, sans-serif', fontSize: '40px', color: '#66ffaa'
     }).setOrigin(0.5).setDepth(21);
     const lines = [`Hull repaired  •  Shield refilled  •  +${LANDING.rewardOre} cr docking fee`];
     if (cargoEarnings > 0) lines.push(`Cargo sold:  +${cargoEarnings} cr`);
-    this.add.text(w / 2, h / 2 + 14, lines.join('\n'), {
+    this.add.text(w / 2, h / 2, lines.join('\n'), {
       fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff', align: 'center'
     }).setOrigin(0.5).setDepth(21);
 
-    this.time.delayedCall(1500, () => {
+    const prompt = this.add.text(w / 2, h / 2 + 70, 'Press E to enter starbase', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '16px', color: '#ffe28a'
+    }).setOrigin(0.5).setDepth(21);
+    this.tweens.add({ targets: prompt, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
+
+    this.input.keyboard.once('keydown-E', () => {
       this.scene.start('StarbaseScene');
     });
   }
