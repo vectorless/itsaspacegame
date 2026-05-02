@@ -63,7 +63,7 @@ export default class LandingScene extends Phaser.Scene {
       .setBlendMode(Phaser.BlendModes.ADD)
       .setVisible(false);
 
-    this.fuel = LANDING.fuelStart;
+    this.fuel = 200;
 
     this.keys = this.input.keyboard.addKeys('A,D,W,E');
     this.canEnterStarbase = false;
@@ -95,7 +95,7 @@ export default class LandingScene extends Phaser.Scene {
     this.angle = -Math.PI / 2;
     this.lander.setPosition(this.x, this.y);
     this.lander.setRotation(this.angle);
-    this.fuel = LANDING.fuelStart * 2;
+    this.fuel = 200;
     this.takeoffPhase = 'manual';
     this.takeoffDone = false;
     this.exitThresholdY = 130;
@@ -114,6 +114,10 @@ export default class LandingScene extends Phaser.Scene {
     this.add.text(this.scale.width / 2, this.scale.height - 8, 'A/D rotate  •  W thrust', {
       fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#5a7090'
     }).setOrigin(0.5);
+
+    this.reenterPrompt = this.add.text(this.scale.width / 2, this.scale.height - 50, 'Press E to re-enter the starbase', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#ffe28a'
+    }).setOrigin(0.5).setDepth(20).setAlpha(0);
   }
 
   drawTerrain() {
@@ -204,6 +208,17 @@ export default class LandingScene extends Phaser.Scene {
 
   updateTakeoff(dt) {
     if (this.takeoffDone) return;
+
+    const terrainY = this.terrainYAt(this.x);
+    const onGround = this.y >= terrainY - 18 && Math.abs(this.vy) < 60;
+    const onPad = this.x >= this.padX1 && this.x <= this.padX2;
+    const canReenter = this.takeoffPhase === 'manual' && onGround && onPad;
+    if (this.reenterPrompt) this.reenterPrompt.setAlpha(canReenter ? 0.95 : 0);
+    if (canReenter && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+      this.takeoffDone = true;
+      this.scene.start('StarbaseScene');
+      return;
+    }
 
     if (this.takeoffPhase === 'leaving') {
       this.vy -= LANDING.thrustAccel * 1.6 * dt;
