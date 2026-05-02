@@ -23,7 +23,9 @@ export function freshGameState() {
     energy: ENERGY.max,
     maxEnergy: ENERGY.max,
     charging: false,
-    deathSites: []
+    deathSites: [],
+    missions: { support_alliance: 'available' },
+    missionFlags: {}
   };
   autoEquipFromCargo(state);
   return state;

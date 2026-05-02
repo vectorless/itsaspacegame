@@ -10,6 +10,7 @@ import { spawnAsteroid, damageAsteroid } from './asteroids.js';
 import { updateOre } from './ore.js';
 import { freshCargo, freshAmmo, autoEquipFromCargo, ensureHardpointsValid, getEquippedWeapons, addItem } from './cargo.js';
 import { ensureGameState, resetAfterDeath, snapshotCargoToWreck } from './state.js';
+import { MISSIONS } from './missions.js';
 import { spawnEnemyAtRing, spawnElite, updateEnemies, damageEnemy } from './enemy.js';
 import { spawnDroneSwarm, updateDrones, damageDrone } from './drones.js';
 
@@ -87,6 +88,7 @@ export default class SpaceScene extends Phaser.Scene {
 
     this.spawnPortal();
     this.spawnBlackhole();
+    this.spawnMissionZones();
 
     const shipCfg = SHIPS[state.currentShipId];
     this.controller = new ShipController(WORLD_W / 2, WORLD_H / 2, shipCfg);
@@ -229,6 +231,50 @@ export default class SpaceScene extends Phaser.Scene {
       fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#88c0e0'
     }).setOrigin(0.5).setDepth(1);
     this.portalSwarmTriggered = false;
+  }
+
+  spawnMissionZones() {
+    this.missionZones = [];
+    if (!this.gameState.missions) return;
+    const cx = WORLD_W / 2, cy = WORLD_H / 2;
+    for (const id of Object.keys(this.gameState.missions)) {
+      if (this.gameState.missions[id] !== 'accepted') continue;
+      let x, y, tries = 0;
+      do {
+        x = Phaser.Math.Between(500, WORLD_W - 500);
+        y = Phaser.Math.Between(500, WORLD_H - 500);
+        tries++;
+        const farFromCenter = Phaser.Math.Distance.Between(x, y, cx, cy) > 1500;
+        const farFromStation = this.stations.every((s) =>
+          Phaser.Math.Distance.Between(x, y, s.x, s.y) > 1200);
+        const farFromPortal = !this.portal ||
+          Phaser.Math.Distance.Between(x, y, this.portal.x, this.portal.y) > 1000;
+        const farFromBh = !this.blackhole ||
+          Phaser.Math.Distance.Between(x, y, this.blackhole.x, this.blackhole.y) > 1200;
+        if (farFromCenter && farFromStation && farFromPortal && farFromBh) break;
+      } while (tries < 30);
+
+      const zone = this.physics.add.image(x, y, 'mission_zone').setDepth(2);
+      zone.body.setAllowGravity(false);
+      zone.body.setImmovable(true);
+      zone.missionId = id;
+      this.missionZones.push(zone);
+      this.tweens.add({ targets: zone, angle: 360, duration: 14000, repeat: -1 });
+
+      const label = this.add.text(x, y - 80, `MISSION: ${id.replace(/_/g, ' ').toUpperCase()}`, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#ffe28a'
+      }).setOrigin(0.5).setDepth(2);
+      zone.label = label;
+
+      this.physics.add.overlap(this.ship, zone, this.onShipEnterMission, null, this);
+    }
+  }
+
+  onShipEnterMission(_ship, zone) {
+    if (!zone.active) return;
+    if (this.scene.isActive('AllianceBattleScene')) return;
+    this.scene.pause();
+    this.scene.launch(MISSIONS[zone.missionId]?.sceneKey ?? 'AllianceBattleScene', { missionId: zone.missionId });
   }
 
   spawnBlackhole() {

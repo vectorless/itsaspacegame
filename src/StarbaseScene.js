@@ -7,7 +7,8 @@ const PROP_SPRITES = {
   engineering: 'prop_engineering',
   airlock: 'prop_airlock',
   repair: 'prop_repair',
-  checkpoint: 'prop_checkpoint'
+  checkpoint: 'prop_checkpoint',
+  mission: 'prop_mission'
 };
 
 export default class StarbaseScene extends Phaser.Scene {
@@ -216,6 +217,9 @@ export default class StarbaseScene extends Phaser.Scene {
     if (prop.type === 'engineering') {
       this.scene.pause();
       this.scene.launch('ShopScene', { from: 'StarbaseScene' });
+    } else if (prop.type === 'mission') {
+      this.scene.pause();
+      this.scene.launch('MissionScene', { from: 'StarbaseScene' });
     } else if (prop.type === 'airlock') {
       this.scene.stop();
       this.scene.launch('LandingScene', { mode: 'takeoff' });
@@ -273,7 +277,12 @@ export default class StarbaseScene extends Phaser.Scene {
 
     const prop = this.nearestProp();
     if (prop) {
-      this.promptText.setText(`E to ${prop.type === 'engineering' ? 'open engineering' : prop.type === 'airlock' ? 'leave starbase' : prop.type === 'repair' ? 'repair hull' : 'set checkpoint'}`);
+      const verb = prop.type === 'engineering' ? 'open engineering'
+        : prop.type === 'mission' ? 'open mission board'
+        : prop.type === 'airlock' ? 'leave starbase'
+        : prop.type === 'repair' ? 'repair hull'
+        : 'set checkpoint';
+      this.promptText.setText(`E to ${verb}`);
       if (Phaser.Input.Keyboard.JustDown(k.E)) {
         this.interact(prop);
       }

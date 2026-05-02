@@ -33,6 +33,7 @@ export const LEVELS = {
       '########################################'
     ].join('\n'),
     props: [
+      { type: 'mission',     x: 26, y: 23 },
       { type: 'engineering', x: 28, y: 23 },
       { type: 'repair',      x: 30, y: 23 },
       { type: 'checkpoint',  x: 32, y: 23 },

@@ -31,6 +31,10 @@ export default class BootScene extends Phaser.Scene {
     this.makeStarbaseTextures();
     this.makeBlackholeTexture();
     this.makeWreckTexture();
+    this.makeMissionZoneTexture();
+    this.makeBombTexture();
+    this.makeTurretTexture();
+    this.makeGroundTexture();
     this.makeStarfieldTextures();
 
     this.scene.start('StarbaseScene');
@@ -470,6 +474,81 @@ export default class BootScene extends Phaser.Scene {
       g.generateTexture('prop_checkpoint', t, t);
       g.destroy();
     }
+
+    // Mission terminal (clipboard / datapad)
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x4a3320, 1);
+      g.fillRect(4, 4, t - 8, t - 6);
+      g.fillStyle(0xffaa50, 1);
+      g.fillRect(6, 6, t - 12, t - 10);
+      g.fillStyle(0x4a3320, 1);
+      g.fillRect(8, 9, t - 16, 1);
+      g.fillRect(8, 13, t - 16, 1);
+      g.fillRect(8, 17, t - 16, 1);
+      g.fillStyle(0xff5050, 1);
+      g.fillRect(t - 8, 5, 3, 3);
+      g.generateTexture('prop_mission', t, t);
+      g.destroy();
+    }
+  }
+
+  makeMissionZoneTexture() {
+    const s = 144, c = s / 2;
+    const g = this.add.graphics();
+    g.lineStyle(3, 0xffaa50, 0.55);
+    g.strokeCircle(c, c, 60);
+    g.lineStyle(2, 0xffe080, 0.4);
+    g.strokeCircle(c, c, 46);
+    g.fillStyle(0xffaa50, 0.12);
+    g.fillCircle(c, c, 50);
+    g.fillStyle(0xffe080, 0.7);
+    g.fillCircle(c, c, 4);
+    g.generateTexture('mission_zone', s, s);
+    g.destroy();
+  }
+
+  makeBombTexture() {
+    const s = 8;
+    const g = this.add.graphics();
+    g.fillStyle(0x202028, 1);
+    g.fillRect(2, 0, 4, s);
+    g.fillStyle(0xff5050, 1);
+    g.fillRect(2, s - 2, 4, 2);
+    g.fillStyle(0xffe080, 0.8);
+    g.fillRect(3, 1, 2, 1);
+    g.generateTexture('bomb', s, s);
+    g.destroy();
+  }
+
+  makeTurretTexture() {
+    const w = 24, h = 18;
+    const g = this.add.graphics();
+    g.fillStyle(0x556a82, 1);
+    g.fillRect(2, h - 8, w - 4, 8);
+    g.fillStyle(0x33445a, 1);
+    g.fillRect(4, h - 10, w - 8, 2);
+    g.fillStyle(0x88aacc, 1);
+    g.fillRect(w / 2 - 2, 2, 4, h - 8);
+    g.fillStyle(0xffaa50, 0.9);
+    g.fillRect(w / 2 - 1, 0, 2, 4);
+    g.generateTexture('turret', w, h);
+    g.destroy();
+  }
+
+  makeGroundTexture() {
+    const w = 64, h = 24;
+    const g = this.add.graphics();
+    g.fillStyle(0x33291a, 1);
+    g.fillRect(0, 0, w, h);
+    g.fillStyle(0x4a3a26, 1);
+    g.fillRect(0, 0, w, 3);
+    g.fillStyle(0x2a200f, 1);
+    for (let i = 0; i < 12; i++) {
+      g.fillRect(Math.random() * w, 4 + Math.random() * (h - 6), 2, 2);
+    }
+    g.generateTexture('ground_tile', w, h);
+    g.destroy();
   }
 
   makeBlackholeTexture() {
