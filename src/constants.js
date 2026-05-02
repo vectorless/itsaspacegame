@@ -281,7 +281,7 @@ export const PORTAL = {
 export const BLACKHOLE = {
   count: 1,
   gravityRadius: 700,
-  maxAccel: 700,
+  maxAccel: 350,
   eventHorizonRadius: 30,
   hullDamageOnEventHorizon: 60,
   minDistFromCenter: 1500,

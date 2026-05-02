@@ -8,7 +8,8 @@ import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
 import { spawnAsteroid, damageAsteroid } from './asteroids.js';
 import { updateOre } from './ore.js';
-import { freshCargo, freshAmmo, autoEquipFromCargo, ensureHardpointsValid, getEquippedWeapons } from './cargo.js';
+import { freshCargo, freshAmmo, autoEquipFromCargo, ensureHardpointsValid, getEquippedWeapons, addItem } from './cargo.js';
+import { ensureGameState, resetAfterDeath, snapshotCargoToWreck } from './state.js';
 import { spawnEnemyAtRing, spawnElite, updateEnemies, damageEnemy } from './enemy.js';
 import { spawnDroneSwarm, updateDrones, damageDrone } from './drones.js';
 
@@ -67,8 +68,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.starsNear = this.add.tileSprite(0, 0, VIEW_W, VIEW_H, 'stars_near')
       .setOrigin(0, 0).setScrollFactor(0).setDepth(-19);
 
-    const state = this.registry.get('gameState') ?? this.freshState();
-    this.registry.set('gameState', state);
+    const state = ensureGameState(this.registry);
     this.gameState = state;
 
     this.asteroidGroup = this.physics.add.group();
@@ -129,6 +129,8 @@ export default class SpaceScene extends Phaser.Scene {
       maxSize: ENEMY.bulletPoolMax, runChildUpdate: true
     });
     this.portalDevices = this.physics.add.group({ allowGravity: false });
+    this.wrecks = this.physics.add.group({ allowGravity: false });
+    this.spawnDeathSites();
 
     this.physics.add.overlap(this.bullets, this.asteroidGroup, this.onProjHitAsteroid, null, this);
     this.physics.add.overlap(this.missiles, this.asteroidGroup, this.onProjHitAsteroid, null, this);
@@ -144,6 +146,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.physics.add.overlap(this.ship, this.drones, this.onShipHitDrone, null, this);
     this.physics.add.overlap(this.ship, this.enemyBullets, this.onShipHitEnemyBullet, null, this);
     this.physics.add.overlap(this.ship, this.portalDevices, this.onShipPickupDevice, null, this);
+    this.physics.add.overlap(this.ship, this.wrecks, this.onShipHitWreck, null, this);
     for (const st of this.stations) {
       this.physics.add.overlap(this.ship, st, this.onShipDockBase, null, this);
     }
@@ -163,33 +166,6 @@ export default class SpaceScene extends Phaser.Scene {
     this.eliteSpawnedFromSwarm = false;
 
     this.scheduleNextEnemySpawn();
-  }
-
-  freshState() {
-    const shipId = 'cruiser';
-    const ship = SHIPS[shipId];
-    const state = {
-      currentShipId: shipId,
-      currentWeapon: 'blaster',
-      cargo: freshCargo(),
-      ammo: freshAmmo(),
-      speed: 0,
-      credits: 1000,
-      shield: ship.maxShield,
-      maxShield: ship.maxShield,
-      hull: ship.maxHull,
-      maxHull: ship.maxHull,
-      gameOver: false,
-      level: 1,
-      hasPortalDevice: false,
-      magnetLevel: 1,
-      shieldLevel: 0,
-      energy: ENERGY.max,
-      maxEnergy: ENERGY.max,
-      charging: false
-    };
-    autoEquipFromCargo(state);
-    return state;
   }
 
   applyShipBody(shipCfg) {
@@ -554,11 +530,59 @@ export default class SpaceScene extends Phaser.Scene {
   triggerGameOver() {
     if (this.gameState.gameOver) return;
     this.gameState.gameOver = true;
-    this.cameras.main.flash(400, 255, 80, 80);
-    this.time.delayedCall(450, () => {
-      this.scene.launch('GameOverScene', { credits: this.gameState.credits, level: this.gameState.level });
-      this.scene.pause();
+
+    const wreckItems = snapshotCargoToWreck(this.gameState);
+    if (wreckItems.length > 0) {
+      this.gameState.deathSites = this.gameState.deathSites || [];
+      this.gameState.deathSites.push({
+        x: this.controller.x,
+        y: this.controller.y,
+        level: this.gameState.level,
+        items: wreckItems
+      });
+    }
+
+    resetAfterDeath(this.gameState);
+
+    this.cameras.main.flash(500, 255, 80, 80);
+    this.time.delayedCall(550, () => {
+      this.scene.stop();
+      this.scene.start('StarbaseScene');
     });
+  }
+
+  spawnDeathSites() {
+    if (!this.gameState.deathSites) return;
+    for (const ds of this.gameState.deathSites) {
+      if (ds.level !== this.gameState.level) continue;
+      const w = this.wrecks.create(ds.x, ds.y, 'wreck').setDepth(3);
+      w.body.setAllowGravity(false);
+      w.deathSite = ds;
+      this.tweens.add({ targets: w, alpha: { from: 0.7, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+    }
+  }
+
+  onShipHitWreck(_ship, wreck) {
+    if (!wreck.active || !wreck.deathSite) return;
+    const remaining = [];
+    let collected = 0;
+    for (const item of wreck.deathSite.items) {
+      let added = false;
+      if (item.type === 'weapon') added = addItem(this.gameState, 'weapon', item.id);
+      else if (item.type === 'exotic') added = addItem(this.gameState, 'exotic', item.id);
+      else if (item.type === 'ore') added = addItem(this.gameState, 'ore', null, item.qty) !== false;
+      else if (item.type === 'scrap') added = addItem(this.gameState, 'scrap', null, item.qty) !== false;
+      if (added) collected++;
+      else remaining.push(item);
+    }
+    if (remaining.length === 0) {
+      this.gameState.deathSites = (this.gameState.deathSites || []).filter((ds) => ds !== wreck.deathSite);
+      wreck.disableBody(true, true);
+      wreck.destroy();
+    } else {
+      wreck.deathSite.items = remaining;
+    }
+    if (collected > 0) this.cameras.main.flash(120, 200, 220, 80);
   }
 
   regenShield(dtSec) {

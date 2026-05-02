@@ -30,9 +30,10 @@ export default class BootScene extends Phaser.Scene {
     this.makeThrusterTexture();
     this.makeStarbaseTextures();
     this.makeBlackholeTexture();
+    this.makeWreckTexture();
     this.makeStarfieldTextures();
 
-    this.scene.start('SpaceScene');
+    this.scene.start('StarbaseScene');
     this.scene.launch('HUDScene');
   }
 
@@ -483,6 +484,24 @@ export default class BootScene extends Phaser.Scene {
     g.lineStyle(1, 0x6040c0, 0.16);
     g.strokeCircle(c, c, 64);
     g.generateTexture('blackhole', s, s);
+    g.destroy();
+  }
+
+  makeWreckTexture() {
+    const s = 28;
+    const g = this.add.graphics();
+    g.fillStyle(0x33445a, 1);
+    g.fillRect(2, 6, 8, 6);
+    g.fillStyle(0x556a82, 1);
+    g.fillRect(11, 4, 7, 8);
+    g.fillStyle(0x222d40, 1);
+    g.fillRect(18, 14, 6, 5);
+    g.fillStyle(0xff8050, 1);
+    g.fillRect(7, 16, 5, 4);
+    g.fillStyle(0xffe28a, 0.9);
+    g.fillRect(14, 18, 3, 3);
+    g.fillRect(4, 12, 2, 2);
+    g.generateTexture('wreck', s, s);
     g.destroy();
   }
 

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { loadLevel } from './levels.js';
 import CrewController, { CREW } from './CrewController.js';
+import { ensureGameState } from './state.js';
 
 const PROP_SPRITES = {
   engineering: 'prop_engineering',
@@ -19,6 +20,8 @@ export default class StarbaseScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor('#0a0e18');
     this.input.setDefaultCursor('default');
+
+    ensureGameState(this.registry);
 
     this.level = loadLevel(this.levelId);
     this.tile = this.level.tileSize;
