@@ -7,11 +7,11 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('ship', '/assets/ships/cruiser.png');
-    this.load.image('elite_ship', '/assets/enemies/elite.png');
-    this.load.image('drone', '/assets/enemies/drone.png');
-    this.load.image('station', '/assets/planets/starbase.png');
-    this.load.image('alien_signal', '/assets/aliens/alien_signal.png');
+    this.load.image('ship', 'assets/ships/cruiser.png');
+    this.load.image('elite_ship', 'assets/enemies/elite.png');
+    this.load.image('drone', 'assets/enemies/drone.png');
+    this.load.image('station', 'assets/planets/starbase.png');
+    this.load.image('alien_signal', 'assets/aliens/alien_signal.png');
   }
 
   create() {
