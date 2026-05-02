@@ -331,7 +331,9 @@ export default class LandingScene extends Phaser.Scene {
     const h = this.scale.height;
 
     const state = this.registry.get('gameState');
-    state.hull = state.maxHull;
+    const impactSpeed = Math.hypot(this.vx, this.vy);
+    const impactDamage = Math.floor(Math.max(0, impactSpeed - 20) / 4);
+    state.hull = Math.max(0, state.hull - impactDamage);
     state.shield = state.maxShield;
 
     let cargoEarnings = 0;
@@ -346,11 +348,31 @@ export default class LandingScene extends Phaser.Scene {
 
     state.credits += LANDING.rewardOre + cargoEarnings;
 
+    if (state.hull <= 0) {
+      this.add.rectangle(0, 0, w, h, 0x000000, 0.6).setOrigin(0, 0).setDepth(20);
+      this.add.text(w / 2, h / 2 - 30, 'HULL DESTROYED', {
+        fontFamily: 'system-ui, sans-serif', fontSize: '36px', color: '#ff6060'
+      }).setOrigin(0.5).setDepth(21);
+      this.add.text(w / 2, h / 2 + 14, `Impact damage: ${impactDamage}\nReturning to starbase…`, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff', align: 'center'
+      }).setOrigin(0.5).setDepth(21);
+      this.time.delayedCall(1800, () => {
+        resetAfterDeath(state);
+        if (this.scene.isPaused('SpaceScene') || this.scene.isActive('SpaceScene')) {
+          this.scene.stop('SpaceScene');
+        }
+        this.scene.start('StarbaseScene');
+      });
+      return;
+    }
+
     this.add.rectangle(0, 0, w, h, 0x000000, 0.45).setOrigin(0, 0).setDepth(20);
     this.add.text(w / 2, h / 2 - 50, 'TOUCHDOWN', {
       fontFamily: 'system-ui, sans-serif', fontSize: '40px', color: '#66ffaa'
     }).setOrigin(0.5).setDepth(21);
-    const lines = [`Hull repaired  •  Shield refilled  •  +${LANDING.rewardOre} cr docking fee`];
+    const lines = [];
+    if (impactDamage > 0) lines.push(`Hull -${impactDamage} from impact  •  Shield refilled  •  +${LANDING.rewardOre} cr fee`);
+    else lines.push(`Soft landing  •  Shield refilled  •  +${LANDING.rewardOre} cr fee`);
     if (cargoEarnings > 0) lines.push(`Cargo sold:  +${cargoEarnings} cr`);
     this.add.text(w / 2, h / 2, lines.join('\n'), {
       fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff', align: 'center'
