@@ -147,6 +147,16 @@ export default class HUDScene extends Phaser.Scene {
       }
     }
 
+    if (space.wrecks) {
+      g.fillStyle(0xffaa50, 1);
+      space.wrecks.children.iterate((w) => {
+        if (!w || !w.active) return;
+        g.fillRect(ox + w.x * sx - 2.5, oy + w.y * sy - 2.5, 5, 5);
+        g.lineStyle(1, 0xffe28a, 0.8);
+        g.strokeRect(ox + w.x * sx - 2.5, oy + w.y * sy - 2.5, 5, 5);
+      });
+    }
+
     if (space.portalDevices) {
       g.fillStyle(COLORS.portalDevice, 1);
       space.portalDevices.children.iterate((d) => {
