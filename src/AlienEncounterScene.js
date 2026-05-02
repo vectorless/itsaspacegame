@@ -95,6 +95,15 @@ export default class AlienEncounterScene extends Phaser.Scene {
     }).setOrigin(0.5);
   }
 
+  update(time) {
+    if (!this.alienSprite) return;
+    const t = time * 0.0008;
+    const r = Math.floor(192 + 63 * Math.sin(t));
+    const g = Math.floor(192 + 63 * Math.sin(t + 2.094));
+    const b = Math.floor(192 + 63 * Math.sin(t + 4.189));
+    this.alienSprite.setTint((r << 16) | (g << 8) | b);
+  }
+
   drawStars() {
     const g = this.add.graphics().setDepth(-10);
     for (let i = 0; i < 100; i++) {
@@ -112,8 +121,8 @@ export default class AlienEncounterScene extends Phaser.Scene {
       halo.fillCircle(cx, cy, 150);
       halo.fillStyle(0xa080ff, 0.10);
       halo.fillCircle(cx, cy, 200);
-      const sprite = this.add.image(cx, cy, 'alien_signal').setDepth(2).setOrigin(0.5);
-      this.tweens.add({ targets: sprite, alpha: { from: 1, to: 0.85 }, duration: 1400, yoyo: true, repeat: -1 });
+      this.alienSprite = this.add.image(cx, cy, 'alien_signal').setDepth(2).setOrigin(0.5);
+      this.tweens.add({ targets: this.alienSprite, alpha: { from: 1, to: 0.85 }, duration: 1400, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: halo, alpha: { from: 1, to: 0.6 }, duration: 1800, yoyo: true, repeat: -1 });
       return;
     }
