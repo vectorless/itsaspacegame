@@ -85,6 +85,8 @@ export const STARTING_AMMO = {
 };
 
 export function nextWeaponId(currentId, owned) {
+  if (!owned || owned.length === 0) return currentId;
   const i = owned.indexOf(currentId);
+  if (i === -1) return owned[0];
   return owned[(i + 1) % owned.length];
 }

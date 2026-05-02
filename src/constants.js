@@ -5,17 +5,54 @@ export const WORLD_W = 6000;
 export const WORLD_H = 6000;
 
 export const SHIP = {
-  rotSpeed: 3.5,
-  accel: 220,
-  reverseAccel: 140,
-  maxSpeed: 420,
-  radius: 14,
-  maxShield: 100,
-  maxHull: 100,
   shieldRegenDelayMs: 4000,
   shieldRegenPerSec: 14,
   hitCooldownMs: 450,
   bounce: 0.55
+};
+
+export const SHIPS = {
+  scout: {
+    id: 'scout', name: 'Scout', desc: 'Fast and fragile',
+    rotSpeed: 5.0, accel: 320, reverseAccel: 200, maxSpeed: 540, radius: 12,
+    maxShield: 80, maxHull: 60,
+    cargoSlots: 4, cost: 200, sprite: 'ship_scout'
+  },
+  cruiser: {
+    id: 'cruiser', name: 'Cruiser', desc: 'Balanced starter',
+    rotSpeed: 3.5, accel: 220, reverseAccel: 140, maxSpeed: 420, radius: 14,
+    maxShield: 100, maxHull: 100,
+    cargoSlots: 8, cost: 0, sprite: 'ship'
+  },
+  heavy: {
+    id: 'heavy', name: 'Heavy', desc: 'Slow and tanky',
+    rotSpeed: 2.4, accel: 150, reverseAccel: 100, maxSpeed: 320, radius: 18,
+    maxShield: 180, maxHull: 200,
+    cargoSlots: 16, cost: 1500, sprite: 'ship_heavy'
+  }
+};
+
+export const CARGO = {
+  scrapPerSlot: 30
+};
+
+export const EXOTICS = {
+  crystalline: { id: 'crystalline', name: 'Crystalline ore sample', value: 50, weight: 6, sprite: 'exotic_crystal' },
+  blackbox:    { id: 'blackbox',    name: 'Black-box recorder',    value: 100, weight: 3, sprite: 'exotic_box' },
+  datacore:    { id: 'datacore',    name: 'Encrypted data core',   value: 200, weight: 1, sprite: 'exotic_data' }
+};
+
+export const DROPS = {
+  drone:   { scrapMin: 1, scrapMax: 1, weaponChance: 0,    exoticChance: 0 },
+  regular: { scrapMin: 2, scrapMax: 4, weaponChance: 0.15, exoticChance: 0 },
+  elite:   { scrapMin: 5, scrapMax: 8, weaponChance: 0.30, exoticChance: 1 },
+  weaponPool: ['spread', 'homing', 'railgun'],
+  scrapValueOre: 1,
+  weaponSellRatio: 0.5
+};
+
+export const STARBASE_PADS = {
+  byLevel: [1, 1, 2, 2, 3, 3, 3]
 };
 
 export const DAMAGE = {
@@ -140,6 +177,11 @@ export const COLORS = {
   portalClosed: 0x445566,
   portalDevice: 0xff80ff,
   rail: 0xc8f0ff,
+  scrap: 0xb8b8c8,
+  scrapDark: 0x4a4a55,
+  exoticCrystal: 0x60ffd0,
+  exoticBox: 0xffaa50,
+  exoticData: 0xff70ff,
   starNear: 0xffffff,
   starFar: 0x6677aa
 };

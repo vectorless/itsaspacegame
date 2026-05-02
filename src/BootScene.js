@@ -8,6 +8,10 @@ export default class BootScene extends Phaser.Scene {
 
   create() {
     this.makeShipTexture();
+    this.makeScoutTexture();
+    this.makeHeavyTexture();
+    this.makeScrapTexture();
+    this.makeExoticTextures();
     this.makeBulletTexture();
     this.makeMissileTexture();
     this.makeAsteroidTexture('asteroid_a', 56, 9);
@@ -45,6 +49,90 @@ export default class BootScene extends Phaser.Scene {
     g.strokePath();
     g.generateTexture('ship', w, h);
     g.destroy();
+  }
+
+  makeScoutTexture() {
+    const w = 28, h = 22;
+    const g = this.add.graphics();
+    g.lineStyle(2, COLORS.shipOutline, 1);
+    g.fillStyle(COLORS.ship, 1);
+    g.beginPath();
+    g.moveTo(w - 1, h / 2);
+    g.lineTo(2, 1);
+    g.lineTo(8, h / 2);
+    g.lineTo(2, h - 1);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+    g.generateTexture('ship_scout', w, h);
+    g.destroy();
+  }
+
+  makeHeavyTexture() {
+    const w = 44, h = 36;
+    const g = this.add.graphics();
+    g.lineStyle(2, COLORS.shipOutline, 1);
+    g.fillStyle(COLORS.ship, 1);
+    g.beginPath();
+    g.moveTo(w - 2, h / 2);
+    g.lineTo(w - 14, 4);
+    g.lineTo(2, 6);
+    g.lineTo(8, h / 2);
+    g.lineTo(2, h - 6);
+    g.lineTo(w - 14, h - 4);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+    g.fillStyle(COLORS.shipOutline, 0.85);
+    g.fillRect(w - 22, 6, 6, 4);
+    g.fillRect(w - 22, h - 10, 6, 4);
+    g.generateTexture('ship_heavy', w, h);
+    g.destroy();
+  }
+
+  makeScrapTexture() {
+    const s = 10;
+    const g = this.add.graphics();
+    g.fillStyle(COLORS.scrapDark, 1);
+    g.fillRect(1, 1, s - 2, s - 2);
+    g.fillStyle(COLORS.scrap, 1);
+    g.fillRect(2, 2, s - 4, s - 4);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillRect(3, 3, 2, 2);
+    g.generateTexture('scrap', s, s);
+    g.destroy();
+  }
+
+  makeExoticTextures() {
+    const make = (key, color, draw) => {
+      const s = 12;
+      const g = this.add.graphics();
+      draw(g, s);
+      g.generateTexture(key, s, s);
+      g.destroy();
+    };
+    make('exotic_crystal', COLORS.exoticCrystal, (g, s) => {
+      g.fillStyle(COLORS.exoticCrystal, 1);
+      g.fillTriangle(s / 2, 0, s, s / 2, s / 2, s);
+      g.fillTriangle(s / 2, 0, 0, s / 2, s / 2, s);
+      g.fillStyle(0xffffff, 0.9);
+      g.fillRect(s / 2 - 1, s / 2 - 1, 2, 2);
+    });
+    make('exotic_box', COLORS.exoticBox, (g, s) => {
+      g.fillStyle(COLORS.exoticBox, 1);
+      g.fillRect(2, 2, s - 4, s - 4);
+      g.fillStyle(0x000000, 0.5);
+      g.fillRect(s / 2 - 1, 4, 2, s - 8);
+    });
+    make('exotic_data', COLORS.exoticData, (g, s) => {
+      g.fillStyle(COLORS.exoticData, 1);
+      g.fillRect(2, 1, s - 4, s - 2);
+      g.fillStyle(0xffffff, 0.9);
+      g.fillRect(3, 3, 2, 2);
+      g.fillRect(s - 5, 3, 2, 2);
+      g.fillRect(3, s - 5, 2, 2);
+      g.fillRect(s - 5, s - 5, 2, 2);
+    });
   }
 
   makeBulletTexture() {

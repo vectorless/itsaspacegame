@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { DRONE } from './constants.js';
+import { DRONE, DROPS } from './constants.js';
+import { spawnScrap } from './ore.js';
 
 export function spawnDroneSwarm(scene, cx, cy) {
   for (let i = 0; i < DRONE.swarmSize; i++) {
@@ -125,6 +126,10 @@ function fireDroneBullet(scene, drone, dx, dy, dist) {
 export function damageDrone(scene, drone, dmg) {
   drone.hp -= dmg;
   if (drone.hp <= 0) {
+    const x = drone.x, y = drone.y;
+    const drop = DROPS.drone;
+    const n = Phaser.Math.Between(drop.scrapMin, drop.scrapMax);
+    for (let i = 0; i < n; i++) spawnScrap(scene, x, y);
     scene.tweens.add({ targets: drone, alpha: 0, duration: 80, onComplete: () => {
       drone.disableBody(true, true);
       drone.destroy();

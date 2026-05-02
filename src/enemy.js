@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { ENEMY, ELITE, WORLD_W, WORLD_H } from './constants.js';
-import { spawnOre } from './ore.js';
+import { ENEMY, ELITE, WORLD_W, WORLD_H, DROPS } from './constants.js';
+import { spawnScrap, spawnExotic, spawnWeaponDrop } from './ore.js';
+import { pickWeightedExotic, pickRandomWeapon } from './cargo.js';
 
 export function spawnEnemyAtRing(scene) {
   const ship = scene.controller;
@@ -128,10 +129,18 @@ export function damageEnemy(scene, enemy, dmg) {
 
 function destroyEnemy(scene, enemy) {
   const isElite = enemy.kind === 'elite';
-  const oreCount = isElite ? ELITE.oreOnDeath : ENEMY.oreOnDeath;
-  for (let i = 0; i < oreCount; i++) {
-    spawnOre(scene, enemy.x, enemy.y);
+  const drop = isElite ? DROPS.elite : DROPS.regular;
+
+  const scrapCount = Phaser.Math.Between(drop.scrapMin, drop.scrapMax);
+  for (let i = 0; i < scrapCount; i++) spawnScrap(scene, enemy.x, enemy.y);
+
+  if (drop.exoticChance > 0 && Math.random() < drop.exoticChance) {
+    spawnExotic(scene, enemy.x, enemy.y, pickWeightedExotic());
   }
+  if (drop.weaponChance > 0 && Math.random() < drop.weaponChance) {
+    spawnWeaponDrop(scene, enemy.x, enemy.y, pickRandomWeapon());
+  }
+
   if (isElite && !scene.gameState.hasPortalDevice) {
     scene.spawnPortalDevice(enemy.x, enemy.y);
   }

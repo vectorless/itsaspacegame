@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WEAPONS } from './weapons.js';
-import { WORLD_W, WORLD_H, COLORS } from './constants.js';
+import { WORLD_W, WORLD_H, COLORS, SHIPS } from './constants.js';
+import { usedSlots, maxSlots } from './cargo.js';
 
 const MINIMAP_SIZE = 160;
 const MINIMAP_PAD = 12;
@@ -27,15 +28,18 @@ export default class HUDScene extends Phaser.Scene {
     this.hullBar = this.add.rectangle(13, 63, BAR_W - 2, BAR_H - 2, COLORS.hullBar, 0.95)
       .setOrigin(0, 0);
 
-    this.weaponText = this.add.text(12, 80, '', style);
-    this.ammoText = this.add.text(12, 98, '', style);
-    this.speedText = this.add.text(12, 116, '', style);
-    this.oreText = this.add.text(12, 134, '', { ...style, color: '#ffe28a', fontSize: '16px' });
-    this.levelText = this.add.text(12, 156, '', { ...style, color: '#a0c0ff' });
-    this.deviceText = this.add.text(12, 174, '', { ...style, color: '#ff80ff' });
+    this.shipText = this.add.text(12, 80, '', { ...style, color: '#a0c0ff' });
+    this.weaponText = this.add.text(12, 98, '', style);
+    this.ammoText = this.add.text(12, 116, '', style);
+    this.speedText = this.add.text(12, 134, '', style);
+    this.oreText = this.add.text(12, 156, '', { ...style, color: '#ffe28a', fontSize: '16px' });
+    this.scrapText = this.add.text(12, 178, '', { ...style, color: '#b8b8c8' });
+    this.cargoText = this.add.text(12, 196, '', { ...style, color: '#cfe6ff' });
+    this.levelText = this.add.text(12, 218, '', { ...style, color: '#a0c0ff' });
+    this.deviceText = this.add.text(12, 236, '', { ...style, color: '#ff80ff' });
 
     this.helpText = this.add.text(12, this.scale.height - 24,
-      'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E weapon • F engineering • dock star base to land',
+      'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E weapon • dock star base',
       { ...style, color: '#5a7090', fontSize: '12px' });
 
     this.minimapX = this.scale.width - MINIMAP_SIZE - MINIMAP_PAD;
@@ -53,6 +57,7 @@ export default class HUDScene extends Phaser.Scene {
     if (!state) return;
     const weapon = WEAPONS[state.currentWeapon];
     const ammo = state.ammo[state.currentWeapon];
+    const ship = SHIPS[state.currentShipId];
 
     const sFrac = Phaser.Math.Clamp(state.shield / state.maxShield, 0, 1);
     const hFrac = Phaser.Math.Clamp(state.hull / state.maxHull, 0, 1);
@@ -63,10 +68,13 @@ export default class HUDScene extends Phaser.Scene {
     this.shieldLabel.setText(`SHIELD  ${Math.round(state.shield)} / ${state.maxShield}`);
     this.hullLabel.setText(`HULL  ${Math.round(state.hull)} / ${state.maxHull}`);
 
-    this.weaponText.setText(`Weapon: ${weapon.name}`);
-    this.ammoText.setText(`Ammo:   ${Number.isFinite(ammo) ? ammo : '∞'}`);
+    this.shipText.setText(`Ship:   ${ship.name}`);
+    this.weaponText.setText(`Weapon: ${weapon ? weapon.name : '—'}`);
+    this.ammoText.setText(`Ammo:   ${weapon && Number.isFinite(ammo) ? ammo : '∞'}`);
     this.speedText.setText(`Speed:  ${Math.round(state.speed)}`);
     this.oreText.setText(`Ore:    ${state.ore ?? 0}`);
+    this.scrapText.setText(`Scrap:  ${state.cargo.scrap}`);
+    this.cargoText.setText(`Cargo:  ${usedSlots(state.cargo)} / ${maxSlots(state)}`);
     this.levelText.setText(`Sector ${state.level ?? 1}`);
     this.deviceText.setText(state.hasPortalDevice ? 'Portal Device  ✓' : '');
 
@@ -91,11 +99,15 @@ export default class HUDScene extends Phaser.Scene {
       g.fillCircle(ox + a.x * sx, oy + a.y * sy, r);
     });
 
-    if (space.oreGroup) {
-      g.fillStyle(COLORS.ore, 1);
-      space.oreGroup.children.iterate((o) => {
-        if (!o || !o.active) return;
-        g.fillRect(ox + o.x * sx - 1, oy + o.y * sy - 1, 2, 2);
+    if (space.collectables) {
+      space.collectables.children.iterate((c) => {
+        if (!c || !c.active) return;
+        let color = COLORS.ore;
+        if (c.kind === 'scrap') color = COLORS.scrap;
+        else if (c.kind === 'exotic') color = COLORS.exoticData;
+        else if (c.kind === 'weapon') color = COLORS.blaster;
+        g.fillStyle(color, 1);
+        g.fillRect(ox + c.x * sx - 1, oy + c.y * sy - 1, 2, 2);
       });
     }
 

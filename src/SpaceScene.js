@@ -2,12 +2,13 @@ import Phaser from 'phaser';
 import {
   VIEW_W, VIEW_H, WORLD_W, WORLD_H,
   ASTEROID_COUNT, MISSILE, BLASTER, RAILGUN, HOMING,
-  STATION, SHIP, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING
+  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS
 } from './constants.js';
 import ShipController from './ShipController.js';
-import { WEAPONS, STARTING_AMMO, nextWeaponId } from './weapons.js';
+import { WEAPONS, nextWeaponId } from './weapons.js';
 import { spawnAsteroid, damageAsteroid } from './asteroids.js';
 import { updateOre } from './ore.js';
+import { freshCargo, freshAmmo } from './cargo.js';
 import { spawnEnemyAtRing, spawnElite, updateEnemies, damageEnemy } from './enemy.js';
 import { spawnDroneSwarm, updateDrones, damageDrone } from './drones.js';
 
@@ -79,14 +80,15 @@ export default class SpaceScene extends Phaser.Scene {
       spawnAsteroid(this, x, y, scale);
     }
 
-    this.oreGroup = this.physics.add.group({ allowGravity: false });
+    this.collectables = this.physics.add.group({ allowGravity: false });
 
     this.stations = [];
     this.spawnStation();
 
     this.spawnPortal();
 
-    this.controller = new ShipController(WORLD_W / 2, WORLD_H / 2);
+    const shipCfg = SHIPS[state.currentShipId];
+    this.controller = new ShipController(WORLD_W / 2, WORLD_H / 2, shipCfg);
     this.thruster = this.add.image(this.controller.x, this.controller.y, 'thruster')
       .setOrigin(0, 0.5)
       .setDepth(9)
@@ -96,8 +98,8 @@ export default class SpaceScene extends Phaser.Scene {
       .setOrigin(0, 0.5).setDepth(9).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
     this.retroR = this.add.image(0, 0, 'thruster')
       .setOrigin(0, 0.5).setDepth(9).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
-    this.ship = this.physics.add.image(this.controller.x, this.controller.y, 'ship').setDepth(10);
-    this.ship.body.setCircle(SHIP.radius, this.ship.width / 2 - SHIP.radius, this.ship.height / 2 - SHIP.radius);
+    this.ship = this.physics.add.image(this.controller.x, this.controller.y, shipCfg.sprite).setDepth(10);
+    this.applyShipBody(shipCfg);
     this.ship.body.setAllowGravity(false);
 
     this.crosshair = this.add.image(this.scale.width / 2, this.scale.height / 2, 'crosshair')
@@ -145,7 +147,7 @@ export default class SpaceScene extends Phaser.Scene {
       this.physics.add.overlap(this.ship, st, this.onShipDockBase, null, this);
     }
 
-    this.keys = this.input.keyboard.addKeys('A,D,W,S,F,SPACE,E');
+    this.keys = this.input.keyboard.addKeys('A,D,W,S,SPACE,E');
     this.lastFireTime = 0;
     this.lastHitTime = -10000;
     this.dockCooldownUntil = this.time.now + LANDING.dockCooldownMs;
@@ -161,22 +163,43 @@ export default class SpaceScene extends Phaser.Scene {
   }
 
   freshState() {
+    const shipId = 'cruiser';
+    const ship = SHIPS[shipId];
     return {
+      currentShipId: shipId,
       currentWeapon: 'blaster',
-      ownedWeapons: ['blaster', 'missile'],
-      ammo: { blaster: Infinity, missile: MISSILE.startAmmo },
+      cargo: freshCargo(),
+      ammo: freshAmmo(),
       speed: 0,
       ore: 0,
-      shield: SHIP.maxShield,
-      maxShield: SHIP.maxShield,
-      hull: SHIP.maxHull,
-      maxHull: SHIP.maxHull,
+      shield: ship.maxShield,
+      maxShield: ship.maxShield,
+      hull: ship.maxHull,
+      maxHull: ship.maxHull,
       gameOver: false,
       level: 1,
       hasPortalDevice: false,
       magnetLevel: 1,
       shieldLevel: 0
     };
+  }
+
+  applyShipBody(shipCfg) {
+    const r = shipCfg.radius;
+    this.ship.body.setCircle(r, this.ship.width / 2 - r, this.ship.height / 2 - r);
+  }
+
+  swapShip(newShipId) {
+    const cfg = SHIPS[newShipId];
+    this.gameState.currentShipId = newShipId;
+    this.controller.setShip(cfg);
+    this.ship.setTexture(cfg.sprite);
+    this.applyShipBody(cfg);
+    const shieldBonus = (this.gameState.shieldLevel ?? 0) * 25;
+    this.gameState.maxShield = cfg.maxShield + shieldBonus;
+    this.gameState.maxHull = cfg.maxHull;
+    this.gameState.shield = Math.min(this.gameState.shield, this.gameState.maxShield);
+    this.gameState.hull = Math.min(this.gameState.hull, this.gameState.maxHull);
   }
 
   spawnStation() {
@@ -188,6 +211,15 @@ export default class SpaceScene extends Phaser.Scene {
     } while (Phaser.Math.Distance.Between(x, y, cx, cy) < STATION.minDistFromCenter);
     const s = this.physics.add.staticImage(x, y, 'station').setDepth(2);
     this.stations.push(s);
+
+    if (!this.stationInventory) {
+      const padIdx = Math.min((this.gameState.level ?? 1) - 1, STARBASE_PADS.byLevel.length - 1);
+      const pads = STARBASE_PADS.byLevel[padIdx] ?? 1;
+      const pool = Object.keys(SHIPS).filter((id) => id !== this.gameState.currentShipId);
+      Phaser.Utils.Array.Shuffle(pool);
+      this.stationInventory = pool.slice(0, Math.max(1, pads));
+    }
+
     this.add.text(x, y - 40, 'STAR BASE', {
       fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#cfe6ff'
     }).setOrigin(0.5).setDepth(2);
@@ -285,7 +317,7 @@ export default class SpaceScene extends Phaser.Scene {
     const d = Math.hypot(dx, dy) || 0.0001;
     const nx = dx / d, ny = dy / d;
     const aRadius = (asteroid.width * (asteroid.scaleValue || 1)) * 0.42;
-    const penetration = (SHIP.radius + aRadius) - d;
+    const penetration = (SHIPS[this.gameState.currentShipId].radius + aRadius) - d;
     if (penetration > 0) {
       this.controller.x += nx * penetration;
       this.controller.y += ny * penetration;
@@ -315,7 +347,7 @@ export default class SpaceScene extends Phaser.Scene {
     const dy = this.controller.y - enemy.y;
     const d = Math.hypot(dx, dy) || 0.0001;
     const nx = dx / d, ny = dy / d;
-    const penetration = (SHIP.radius + cfg.radius) - d;
+    const penetration = (SHIPS[this.gameState.currentShipId].radius + cfg.radius) - d;
     if (penetration > 0) {
       this.controller.x += nx * penetration;
       this.controller.y += ny * penetration;
@@ -532,12 +564,8 @@ export default class SpaceScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(k.E)) {
       this.gameState.currentWeapon = nextWeaponId(
         this.gameState.currentWeapon,
-        this.gameState.ownedWeapons
+        this.gameState.cargo.weapons
       );
-    }
-
-    if (Phaser.Input.Keyboard.JustDown(k.F)) {
-      this.openShop();
     }
 
     const fireHeld = k.SPACE.isDown || pointer.leftButtonDown();

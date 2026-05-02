@@ -13,7 +13,7 @@ const config = {
   width: VIEW_W,
   height: VIEW_H,
   backgroundColor: '#05060a',
-  pixelArt: false,
+  pixelArt: true,
   physics: {
     default: 'arcade',
     arcade: { debug: false }
