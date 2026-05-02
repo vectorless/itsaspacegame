@@ -11,6 +11,10 @@ export default class ShopScene extends Phaser.Scene {
     super('ShopScene');
   }
 
+  init(data = {}) {
+    this.fromScene = data.from ?? 'StarbaseScene';
+  }
+
   create() {
     this.state = this.registry.get('gameState');
 
@@ -64,9 +68,8 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   close() {
-    this.input.setDefaultCursor('none');
     this.scene.stop('ShopScene');
-    this.scene.launch('LandingScene', { mode: 'takeoff' });
+    this.scene.run(this.fromScene);
   }
 
   refresh() {

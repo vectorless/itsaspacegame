@@ -7,6 +7,7 @@ import GameOverScene from './GameOverScene.js';
 import ShopScene from './ShopScene.js';
 import LandingScene from './LandingScene.js';
 import SchematicScene from './SchematicScene.js';
+import StarbaseScene from './StarbaseScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -19,7 +20,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false }
   },
-  scene: [BootScene, SpaceScene, HUDScene, GameOverScene, ShopScene, LandingScene, SchematicScene]
+  scene: [BootScene, SpaceScene, HUDScene, GameOverScene, ShopScene, LandingScene, SchematicScene, StarbaseScene]
 };
 
 new Phaser.Game(config);

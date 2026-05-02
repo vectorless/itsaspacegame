@@ -28,6 +28,7 @@ export default class BootScene extends Phaser.Scene {
     this.makePortalTextures();
     this.makeCrosshairTexture();
     this.makeThrusterTexture();
+    this.makeStarbaseTextures();
     this.makeStarfieldTextures();
 
     this.scene.start('SpaceScene');
@@ -343,6 +344,130 @@ export default class BootScene extends Phaser.Scene {
     g.fillTriangle(0, h / 2, w * 0.22, h * 0.35, w * 0.22, h * 0.65);
     g.generateTexture('thruster', w, h);
     g.destroy();
+  }
+
+  makeStarbaseTextures() {
+    const t = 24;
+
+    // Solid wall tile
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x33445a, 1);
+      g.fillRect(0, 0, t, t);
+      g.fillStyle(0x556a82, 1);
+      g.fillRect(0, 0, t, 2);
+      g.fillRect(0, 0, 2, t);
+      g.fillStyle(0x1a2638, 1);
+      g.fillRect(0, t - 2, t, 2);
+      g.fillRect(t - 2, 0, 2, t);
+      g.fillStyle(0x222d40, 1);
+      g.fillRect(8, 8, 8, 8);
+      g.generateTexture('tile_wall', t, t);
+      g.destroy();
+    }
+
+    // Spike up
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0xff5050, 1);
+      g.fillTriangle(0, t, t / 4, 4, t / 2, t);
+      g.fillTriangle(t / 4, t, t / 2, 4, 3 * t / 4, t);
+      g.fillTriangle(t / 2, t, 3 * t / 4, 4, t, t);
+      g.fillStyle(0xffffff, 0.6);
+      g.fillRect(t / 4 - 1, t - 4, 1, 3);
+      g.fillRect(t / 2 - 1, t - 4, 1, 3);
+      g.fillRect(3 * t / 4 - 1, t - 4, 1, 3);
+      g.generateTexture('tile_spike_up', t, t);
+      g.destroy();
+    }
+
+    // Spike down
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0xff5050, 1);
+      g.fillTriangle(0, 0, t / 4, t - 4, t / 2, 0);
+      g.fillTriangle(t / 4, 0, t / 2, t - 4, 3 * t / 4, 0);
+      g.fillTriangle(t / 2, 0, 3 * t / 4, t - 4, t, 0);
+      g.fillStyle(0xffffff, 0.6);
+      g.fillRect(t / 4 - 1, 1, 1, 3);
+      g.fillRect(t / 2 - 1, 1, 1, 3);
+      g.fillRect(3 * t / 4 - 1, 1, 1, 3);
+      g.generateTexture('tile_spike_down', t, t);
+      g.destroy();
+    }
+
+    // Crew sprite (16x16)
+    {
+      const w = 12, h = 16;
+      const g = this.add.graphics();
+      g.fillStyle(0xfff0a0, 1);
+      g.fillRect(3, 0, 6, 5);          // head
+      g.fillStyle(0x222244, 1);
+      g.fillRect(4, 1, 1, 1);          // eye
+      g.fillRect(7, 1, 1, 1);
+      g.fillStyle(0x66ddff, 1);
+      g.fillRect(2, 5, 8, 7);          // torso
+      g.fillStyle(0x224458, 1);
+      g.fillRect(2, 12, 3, 4);         // legs
+      g.fillRect(7, 12, 3, 4);
+      g.generateTexture('crew', w, h);
+      g.destroy();
+    }
+
+    // Engineering terminal
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x223a52, 1);
+      g.fillRect(2, 6, t - 4, t - 6);
+      g.fillStyle(0x88ddff, 1);
+      g.fillRect(4, 8, t - 8, 8);
+      g.fillStyle(0xfff0a0, 1);
+      g.fillRect(6, 18, 2, 2);
+      g.fillRect(10, 18, 2, 2);
+      g.fillRect(14, 18, 2, 2);
+      g.generateTexture('prop_engineering', t, t);
+      g.destroy();
+    }
+
+    // Airlock
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x445566, 1);
+      g.fillRect(0, 0, t, t);
+      g.fillStyle(0x223344, 1);
+      g.fillRect(4, 2, t - 8, t - 2);
+      g.fillStyle(0x66ddff, 1);
+      g.fillRect(t / 2 - 1, 4, 2, t - 8);
+      g.fillStyle(0xfff0a0, 1);
+      g.fillRect(6, t - 6, 4, 2);
+      g.generateTexture('prop_airlock', t, t);
+      g.destroy();
+    }
+
+    // Repair (cross / med-pad)
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x202028, 1);
+      g.fillRect(2, 2, t - 4, t - 4);
+      g.fillStyle(0x66ff88, 1);
+      g.fillRect(t / 2 - 2, 6, 4, 12);
+      g.fillRect(6, t / 2 - 2, 12, 4);
+      g.generateTexture('prop_repair', t, t);
+      g.destroy();
+    }
+
+    // Checkpoint (flag)
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x202028, 1);
+      g.fillRect(11, 4, 2, t - 6);
+      g.fillStyle(0xffe060, 1);
+      g.fillTriangle(13, 4, 21, 8, 13, 12);
+      g.fillStyle(0x88aacc, 1);
+      g.fillRect(8, t - 4, 8, 2);
+      g.generateTexture('prop_checkpoint', t, t);
+      g.destroy();
+    }
   }
 
   makeStarfieldTextures() {

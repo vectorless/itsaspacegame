@@ -318,7 +318,7 @@ export default class LandingScene extends Phaser.Scene {
 
     this.time.delayedCall(1500, () => {
       this.scene.stop();
-      this.scene.launch('ShopScene');
+      this.scene.launch('StarbaseScene');
     });
   }
 
