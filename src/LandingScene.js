@@ -96,12 +96,21 @@ export default class LandingScene extends Phaser.Scene {
     this.fuel = LANDING.fuelStart * 2;
     this.takeoffPhase = 'manual';
     this.takeoffDone = false;
+    this.exitThresholdY = 130;
 
-    this.add.text(this.scale.width / 2, 14, 'TAKEOFF — climb to the top of the screen to leave orbit', {
+    this.exitBand = this.add.rectangle(0, 0, this.scale.width, this.exitThresholdY, 0x3a8aff, 0.08)
+      .setOrigin(0, 0).setDepth(1);
+    this.add.line(0, 0, 0, this.exitThresholdY, this.scale.width, this.exitThresholdY, 0x6cd0ff, 0.5)
+      .setOrigin(0, 0).setDepth(1);
+    this.add.text(this.scale.width / 2, this.exitThresholdY - 12, '↑ EXIT ORBIT ↑', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: '#6cd0ff'
+    }).setOrigin(0.5).setDepth(1);
+
+    this.add.text(this.scale.width / 2, this.scale.height - 24, 'TAKEOFF — fly into the EXIT ORBIT band to leave', {
       fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#88c0ff'
     }).setOrigin(0.5);
-    this.add.text(this.scale.width / 2, 32, 'A/D rotate  •  W thrust', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#5a7090'
+    this.add.text(this.scale.width / 2, this.scale.height - 8, 'A/D rotate  •  W thrust', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#5a7090'
     }).setOrigin(0.5);
   }
 
@@ -205,8 +214,8 @@ export default class LandingScene extends Phaser.Scene {
 
       if (this.y < -40) {
         this.takeoffDone = true;
+        this.scene.run('SpaceScene');
         this.scene.stop();
-        this.scene.resume('SpaceScene');
       }
       return;
     }
@@ -255,8 +264,11 @@ export default class LandingScene extends Phaser.Scene {
     this.vText.setText(`vx: ${this.vx.toFixed(1)}   vy: ${this.vy.toFixed(1)}`);
     this.fuelText.setText(`Fuel: ${Math.round(this.fuel)}`);
 
-    if (this.y < 80) {
+    if (this.y < this.exitThresholdY) {
       this.takeoffPhase = 'leaving';
+      this.add.text(this.scale.width / 2, 60, 'LEAVING ORBIT', {
+        fontFamily: 'system-ui, sans-serif', fontSize: '22px', color: '#6cd0ff'
+      }).setOrigin(0.5).setDepth(20);
     }
   }
 
