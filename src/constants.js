@@ -278,6 +278,16 @@ export const PORTAL = {
   minDistFromShipStart: 2400
 };
 
+export const BLACKHOLE = {
+  count: 1,
+  gravityRadius: 700,
+  maxAccel: 700,
+  eventHorizonRadius: 30,
+  hullDamageOnEventHorizon: 60,
+  minDistFromCenter: 1500,
+  minDistFromOther: 1200
+};
+
 export const LEVEL = {
   asteroidsPerLevel: 6,
   enemySpawnSpeedup: 0.85

@@ -120,6 +120,11 @@ export default class HUDScene extends Phaser.Scene {
       }
     }
 
+    if (space.blackhole) {
+      g.fillStyle(0x8060ff, 0.6);
+      g.fillCircle(ox + space.blackhole.x * sx, oy + space.blackhole.y * sy, 3);
+    }
+
     if (space.portal) {
       const open = !!(space.gameState && space.gameState.hasPortalDevice);
       g.fillStyle(open ? COLORS.portalRing : COLORS.portalClosed, 1);

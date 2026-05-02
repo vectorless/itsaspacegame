@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
   VIEW_W, VIEW_H, WORLD_W, WORLD_H,
   ASTEROID_COUNT, MISSILE, BLASTER, RAILGUN, HOMING,
-  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS
+  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE
 } from './constants.js';
 import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
@@ -86,6 +86,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.spawnStation();
 
     this.spawnPortal();
+    this.spawnBlackhole();
 
     const shipCfg = SHIPS[state.currentShipId];
     this.controller = new ShipController(WORLD_W / 2, WORLD_H / 2, shipCfg);
@@ -246,6 +247,108 @@ export default class SpaceScene extends Phaser.Scene {
       fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#88c0e0'
     }).setOrigin(0.5).setDepth(1);
     this.portalSwarmTriggered = false;
+  }
+
+  spawnBlackhole() {
+    const cx = WORLD_W / 2, cy = WORLD_H / 2;
+    let x, y, tries = 0;
+    do {
+      x = Phaser.Math.Between(400, WORLD_W - 400);
+      y = Phaser.Math.Between(400, WORLD_H - 400);
+      tries++;
+      const tooCloseStation = this.stations.some((s) =>
+        Phaser.Math.Distance.Between(x, y, s.x, s.y) < BLACKHOLE.minDistFromOther);
+      const tooClosePortal = this.portal &&
+        Phaser.Math.Distance.Between(x, y, this.portal.x, this.portal.y) < BLACKHOLE.minDistFromOther;
+      const tooCloseCenter = Phaser.Math.Distance.Between(x, y, cx, cy) < BLACKHOLE.minDistFromCenter;
+      if (!tooCloseStation && !tooClosePortal && !tooCloseCenter) break;
+    } while (tries < 30);
+    this.blackhole = this.add.image(x, y, 'blackhole').setDepth(1);
+    this.tweens.add({
+      targets: this.blackhole,
+      angle: 360,
+      duration: 12000,
+      repeat: -1
+    });
+  }
+
+  applyBlackholeGravity(dtSec) {
+    if (!this.blackhole) return;
+    const bx = this.blackhole.x;
+    const by = this.blackhole.y;
+    const grR = BLACKHOLE.gravityRadius;
+    const grR2 = grR * grR;
+    const ehR2 = BLACKHOLE.eventHorizonRadius * BLACKHOLE.eventHorizonRadius;
+
+    const pull = (obj, getVel, setVel) => {
+      const dx = bx - obj.x;
+      const dy = by - obj.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > grR2 || d2 < 1) return false;
+      const d = Math.sqrt(d2);
+      const strength = BLACKHOLE.maxAccel * (1 - d / grR);
+      const ax = (dx / d) * strength;
+      const ay = (dy / d) * strength;
+      const v = getVel(obj);
+      v.x += ax * dtSec;
+      v.y += ay * dtSec;
+      setVel(obj, v);
+      return d2 < ehR2;
+    };
+
+    const c = this.controller;
+    const shipCaught = pull(
+      c,
+      (o) => ({ x: o.vx, y: o.vy }),
+      (o, v) => { o.vx = v.x; o.vy = v.y; }
+    );
+    if (shipCaught) {
+      this.takeDamage(BLACKHOLE.hullDamageOnEventHorizon);
+      const dx = c.x - bx;
+      const dy = c.y - by;
+      const d = Math.hypot(dx, dy) || 0.001;
+      const push = BLACKHOLE.eventHorizonRadius + 20;
+      c.x = bx + (dx / d) * push;
+      c.y = by + (dy / d) * push;
+      const speed = 120;
+      c.vx = (dx / d) * speed;
+      c.vy = (dy / d) * speed;
+    }
+
+    const pullBody = (o) => pull(
+      o,
+      (oo) => oo.body.velocity,
+      (oo, v) => { oo.body.velocity.x = v.x; oo.body.velocity.y = v.y; }
+    );
+
+    if (this.asteroidGroup) {
+      this.asteroidGroup.children.iterate((a) => {
+        if (!a || !a.active) return;
+        const consumed = pullBody(a);
+        if (consumed) { a.disableBody(true, true); a.destroy(); }
+      });
+    }
+    if (this.collectables) {
+      this.collectables.children.iterate((co) => {
+        if (!co || !co.active) return;
+        const consumed = pullBody(co);
+        if (consumed) { co.disableBody(true, true); co.destroy(); }
+      });
+    }
+    if (this.enemies) {
+      this.enemies.children.iterate((e) => {
+        if (!e || !e.active) return;
+        const consumed = pullBody(e);
+        if (consumed) damageEnemy(this, e, 999);
+      });
+    }
+    if (this.drones) {
+      this.drones.children.iterate((d) => {
+        if (!d || !d.active) return;
+        const consumed = pullBody(d);
+        if (consumed) damageDrone(this, d, 999);
+      });
+    }
   }
 
   spawnPortalDevice(x, y) {
@@ -625,6 +728,7 @@ export default class SpaceScene extends Phaser.Scene {
     updateEnemies(this, time, dt);
     updateDrones(this, time, dt);
     this.updatePortal();
+    this.applyBlackholeGravity(dt);
     this.regenShield(dt);
 
     this.gameState.speed = this.controller.speed();
