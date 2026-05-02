@@ -88,7 +88,7 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   refresh() {
-    this.headerText.setText(`Credits: ${this.state.ore}    Raw ore: ${this.state.cargo.ore || 0}    Scrap: ${this.state.cargo.scrap}    Cargo: ${usedSlots(this.state.cargo)}/${maxSlots(this.state)}`);
+    this.headerText.setText(`Credits: ${this.state.credits}    Raw ore: ${this.state.cargo.ore || 0}    Scrap: ${this.state.cargo.scrap}    Cargo: ${usedSlots(this.state.cargo)}/${maxSlots(this.state)}`);
 
     for (const t of this.tabButtons) {
       const active = t.id === this.currentTab;
@@ -147,7 +147,7 @@ export default class ShopScene extends Phaser.Scene {
       const isStarter = id === 'blaster' || id === 'missile';
       this.addRow(i++,
         `${w?.name ?? id} (weapon)`,
-        isStarter ? '— starter —' : `Sell for ${sellPrice} ore`,
+        isStarter ? '— starter —' : `Sell for ${sellPrice} credits`,
         isStarter ? '#5a7090' : '#a8dcff',
         isStarter ? null : () => { sellItem(this.state, 'weapon', id); this.refresh(); });
     }
@@ -155,7 +155,7 @@ export default class ShopScene extends Phaser.Scene {
       const e = EXOTICS[id];
       this.addRow(i++,
         `${e?.name ?? id} (exotic)`,
-        `Sell for ${e?.value ?? 0} ore`, '#a8dcff',
+        `Sell for ${e?.value ?? 0} credits`, '#a8dcff',
         () => { sellItem(this.state, 'exotic', idx); this.refresh(); });
     });
     if (i === 0) {
@@ -172,14 +172,14 @@ export default class ShopScene extends Phaser.Scene {
       const room = freeSlots(this.state) >= 1;
       let actionText, color, fn;
       if (!owned) {
-        if (this.state.ore < w.cost) { actionText = `${w.cost} ore`; color = '#7a3a3a'; fn = null; }
-        else if (!room) { actionText = `${w.cost} ore (no cargo space)`; color = '#7a3a3a'; fn = null; }
+        if (this.state.credits < w.cost) { actionText = `${w.cost} credits`; color = '#7a3a3a'; fn = null; }
+        else if (!room) { actionText = `${w.cost} credits (no cargo space)`; color = '#7a3a3a'; fn = null; }
         else {
-          actionText = `Buy: ${w.cost} ore`; color = '#a8dcff';
+          actionText = `Buy: ${w.cost} credits`; color = '#a8dcff';
           fn = () => {
-            if (this.state.ore < w.cost) return;
+            if (this.state.credits < w.cost) return;
             if (!addItem(this.state, 'weapon', id)) return;
-            this.state.ore -= w.cost;
+            this.state.credits -= w.cost;
             this.refresh();
           };
         }
@@ -187,12 +187,12 @@ export default class ShopScene extends Phaser.Scene {
         const cur = this.state.ammo.homing ?? 0;
         const max = STARTING_AMMO.homing;
         if (cur >= max) { actionText = 'Ammo full'; color = '#5a7090'; fn = null; }
-        else if (this.state.ore < w.cost) { actionText = `Refill: ${w.cost} ore`; color = '#7a3a3a'; fn = null; }
+        else if (this.state.credits < w.cost) { actionText = `Refill: ${w.cost} credits`; color = '#7a3a3a'; fn = null; }
         else {
-          actionText = `Refill: ${w.cost} ore`; color = '#a8dcff';
+          actionText = `Refill: ${w.cost} credits`; color = '#a8dcff';
           fn = () => {
-            if (this.state.ore < w.cost) return;
-            this.state.ore -= w.cost;
+            if (this.state.credits < w.cost) return;
+            this.state.credits -= w.cost;
             this.state.ammo.homing = STARTING_AMMO.homing;
             this.refresh();
           };
@@ -219,10 +219,10 @@ export default class ShopScene extends Phaser.Scene {
         const label = cur === 0
           ? `Tractor Field — pulls nearby loot (Lvl 1 = ${nextR}px)`
           : `Tractor Field — Lvl ${cur} (${radius}px) → Lvl ${next} (${nextR}px)`;
-        const can = this.state.ore >= cost;
-        this.addRow(i++, label, `${cost} ore`, can ? '#a8dcff' : '#7a3a3a',
+        const can = this.state.credits >= cost;
+        this.addRow(i++, label, `${cost} credits`, can ? '#a8dcff' : '#7a3a3a',
           can ? () => {
-            this.state.ore -= cost;
+            this.state.credits -= cost;
             this.state.magnetLevel = next;
             this.refresh();
           } : null);
@@ -242,10 +242,10 @@ export default class ShopScene extends Phaser.Scene {
         const label = cur === 0
           ? `Shield Capacitor — boost max shield (Lvl 1 = ${nextMax})`
           : `Shield Capacitor — Lvl ${cur} (${maxS}) → Lvl ${next} (${nextMax})`;
-        const can = this.state.ore >= cost;
-        this.addRow(i++, label, `${cost} ore`, can ? '#a8dcff' : '#7a3a3a',
+        const can = this.state.credits >= cost;
+        this.addRow(i++, label, `${cost} credits`, can ? '#a8dcff' : '#7a3a3a',
           can ? () => {
-            this.state.ore -= cost;
+            this.state.credits -= cost;
             this.state.shieldLevel = next;
             this.state.maxShield = baseShield + next * SHIELD_UPGRADE.bonusPerLevel;
             this.state.shield = this.state.maxShield;
@@ -257,11 +257,11 @@ export default class ShopScene extends Phaser.Scene {
     if (this.state.hasPortalDevice) {
       this.addRow(i++, 'Portal Device — already in cargo', 'OWNED', '#5a7090', null);
     } else {
-      const can = this.state.ore >= 20;
-      this.addRow(i++, 'Portal Device — opens the wormhole', '20 ore',
+      const can = this.state.credits >= 20;
+      this.addRow(i++, 'Portal Device — opens the wormhole', '20 credits',
         can ? '#a8dcff' : '#7a3a3a',
         can ? () => {
-          this.state.ore -= 20;
+          this.state.credits -= 20;
           this.state.hasPortalDevice = true;
           this.refresh();
         } : null);
@@ -269,13 +269,13 @@ export default class ShopScene extends Phaser.Scene {
     // Hull repair
     {
       const full = this.state.hull >= this.state.maxHull;
-      const can = !full && this.state.ore >= REPAIR.costPerBuy;
+      const can = !full && this.state.credits >= REPAIR.costPerBuy;
       this.addRow(i++,
         `Hull repair  +${REPAIR.hpPerBuy} HP   (${Math.round(this.state.hull)}/${this.state.maxHull})`,
-        full ? 'Hull full' : `${REPAIR.costPerBuy} ore`,
+        full ? 'Hull full' : `${REPAIR.costPerBuy} credits`,
         full ? '#5a7090' : (can ? '#a8dcff' : '#7a3a3a'),
         can ? () => {
-          this.state.ore -= REPAIR.costPerBuy;
+          this.state.credits -= REPAIR.costPerBuy;
           this.state.hull = Math.min(this.state.maxHull, this.state.hull + REPAIR.hpPerBuy);
           this.refresh();
         } : null);
@@ -297,19 +297,19 @@ export default class ShopScene extends Phaser.Scene {
         cost = Math.max(0, s.cost - Math.floor(cur.cost * 0.5));
         actionPrefix = 'Trade';
       }
-      const can = this.state.ore >= cost;
+      const can = this.state.credits >= cost;
       const label = `${s.name} — H${s.maxHull}/S${s.maxShield} • Acc${s.accel} • Cargo ${s.cargoSlots}`;
       this.addRow(i++, label,
-        `${actionPrefix}: ${cost} ore`,
+        `${actionPrefix}: ${cost} credits`,
         can ? '#a8dcff' : '#7a3a3a',
         can ? () => {
-          if (this.state.ore < cost) return;
-          this.state.ore -= cost;
+          if (this.state.credits < cost) return;
+          this.state.credits -= cost;
           const result = autoSellOverflow(this.state, id);
           if (space && space.swapShip) space.swapShip(id);
           else this.state.currentShipId = id;
           if (result.itemsSold > 0) {
-            this.flashToast(`Auto-sold ${result.itemsSold} items for ${result.oreEarned} ore`);
+            this.flashToast(`Auto-sold ${result.itemsSold} items for ${result.oreEarned} credits`);
           }
           this.refresh();
         } : null);

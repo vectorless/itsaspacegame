@@ -174,7 +174,7 @@ export default class SpaceScene extends Phaser.Scene {
       cargo: freshCargo(),
       ammo: freshAmmo(),
       speed: 0,
-      ore: 1000,
+      credits: 1000,
       shield: ship.maxShield,
       maxShield: ship.maxShield,
       hull: ship.maxHull,
@@ -556,7 +556,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.gameState.gameOver = true;
     this.cameras.main.flash(400, 255, 80, 80);
     this.time.delayedCall(450, () => {
-      this.scene.launch('GameOverScene', { ore: this.gameState.ore, level: this.gameState.level });
+      this.scene.launch('GameOverScene', { credits: this.gameState.credits, level: this.gameState.level });
       this.scene.pause();
     });
   }

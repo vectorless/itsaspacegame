@@ -130,7 +130,7 @@ export function sellItem(state, kind, idOrIndex) {
       state.currentWeapon = state.cargo.weapons[0] ?? 'blaster';
     }
     const value = Math.floor((WEAPONS[id]?.cost ?? 0) * DROPS.weaponSellRatio);
-    state.ore += value;
+    state.credits += value;
     return value;
   }
   if (kind === 'exotic') {
@@ -139,18 +139,18 @@ export function sellItem(state, kind, idOrIndex) {
     if (!id) return 0;
     state.cargo.exotics.splice(idx, 1);
     const value = EXOTICS[id]?.value ?? 0;
-    state.ore += value;
+    state.credits += value;
     return value;
   }
   if (kind === 'scrap') {
     const value = state.cargo.scrap * DROPS.scrapValueOre;
-    state.ore += value;
+    state.credits += value;
     state.cargo.scrap = 0;
     return value;
   }
   if (kind === 'ore') {
     const value = state.cargo.ore || 0;
-    state.ore += value;
+    state.credits += value;
     state.cargo.ore = 0;
     return value;
   }
@@ -183,7 +183,7 @@ export function autoSellOverflow(state, newShipId) {
     oreEarned += Math.floor(reduce * DROPS.scrapValueOre * 0.5);
     itemsSold += reduce;
   }
-  state.ore += oreEarned;
+  state.credits += oreEarned;
   if (!state.cargo.weapons.includes(state.currentWeapon)) {
     state.currentWeapon = state.cargo.weapons[0] ?? 'blaster';
   }

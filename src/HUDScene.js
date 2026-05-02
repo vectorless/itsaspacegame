@@ -85,7 +85,7 @@ export default class HUDScene extends Phaser.Scene {
     this.weaponText.setText(`Weapon: ${weapon ? weapon.name : '—'}`);
     this.ammoText.setText(`Ammo:   ${weapon && Number.isFinite(ammo) ? ammo : '∞'}`);
     this.speedText.setText(`Speed:  ${Math.round(state.speed)}`);
-    this.oreText.setText(`Credits: ${state.ore ?? 0}`);
+    this.oreText.setText(`Credits: ${state.credits ?? 0}`);
     this.rawOreText.setText(`Raw ore: ${state.cargo.ore || 0}`);
     this.scrapText.setText(`Scrap:   ${state.cargo.scrap}`);
     this.cargoText.setText(`Cargo:  ${usedSlots(state.cargo)} / ${maxSlots(state)}`);

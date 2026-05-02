@@ -314,7 +314,7 @@ export default class LandingScene extends Phaser.Scene {
     const state = this.registry.get('gameState');
     state.hull = state.maxHull;
     state.shield = state.maxShield;
-    state.ore += LANDING.rewardOre;
+    state.credits += LANDING.rewardOre;
 
     this.time.delayedCall(1500, () => {
       this.scene.stop();

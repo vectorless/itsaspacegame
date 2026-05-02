@@ -6,7 +6,7 @@ export default class GameOverScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.finalOre = data?.ore ?? 0;
+    this.finalCredits = data?.credits ?? 0;
   }
 
   create() {
@@ -21,7 +21,7 @@ export default class GameOverScene extends Phaser.Scene {
       color: '#ff6060'
     }).setOrigin(0.5);
 
-    this.add.text(w / 2, h / 2 - 10, `Ore mined: ${this.finalOre}`, {
+    this.add.text(w / 2, h / 2 - 10, `Credits earned: ${this.finalCredits}`, {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '20px',
       color: '#ffe28a'
