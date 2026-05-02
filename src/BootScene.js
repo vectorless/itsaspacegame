@@ -9,6 +9,7 @@ export default class BootScene extends Phaser.Scene {
   preload() {
     this.load.image('ship', '/assets/ships/cruiser.png');
     this.load.image('elite_ship', '/assets/enemies/elite.png');
+    this.load.image('drone', '/assets/enemies/drone.png');
   }
 
   create() {
@@ -27,7 +28,7 @@ export default class BootScene extends Phaser.Scene {
     this.makeEnemyTexture();
     this.makeEnemyBulletTexture();
     if (!this.textures.exists('elite_ship')) this.makeEliteTexture();
-    this.makeDroneTexture();
+    if (!this.textures.exists('drone')) this.makeDroneTexture();
     this.makeRailshotTexture();
     this.makePortalDeviceTexture();
     this.makePortalTextures();
