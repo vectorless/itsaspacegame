@@ -604,11 +604,16 @@ export default class AllianceBattleScene extends Phaser.Scene {
   exitToStarbase() {
     if (this.exiting) return;
     this.exiting = true;
-    resetAfterDeath(this.gameState);
-    this.input.setDefaultCursor('default');
-    if (this.scene.isPaused('SpaceScene') || this.scene.isActive('SpaceScene')) {
-      this.scene.stop('SpaceScene');
+    try {
+      resetAfterDeath(this.gameState);
+      this.input.setDefaultCursor('default');
+      if (this.scene.isPaused('SpaceScene') || this.scene.isActive('SpaceScene')) {
+        this.scene.stop('SpaceScene');
+      }
+      this.scene.stop();
+      this.scene.start('StarbaseScene');
+    } catch (err) {
+      console.error('[AllianceBattleScene.exitToStarbase]', err);
     }
-    this.scene.start('StarbaseScene');
   }
 }
