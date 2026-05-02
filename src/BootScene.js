@@ -6,8 +6,12 @@ export default class BootScene extends Phaser.Scene {
     super('BootScene');
   }
 
+  preload() {
+    this.load.image('ship', '/assets/ships/cruiser.png');
+  }
+
   create() {
-    this.makeShipTexture();
+    if (!this.textures.exists('ship')) this.makeShipTexture();
     this.makeScoutTexture();
     this.makeHeavyTexture();
     this.makeScrapTexture();
