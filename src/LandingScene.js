@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { LANDING, EXOTICS } from './constants.js';
+import { LANDING, EXOTICS, SHIPS } from './constants.js';
 import { resetAfterDeath } from './state.js';
 
 export default class LandingScene extends Phaser.Scene {
@@ -63,7 +63,7 @@ export default class LandingScene extends Phaser.Scene {
       .setBlendMode(Phaser.BlendModes.ADD)
       .setVisible(false);
 
-    this.fuel = 200;
+    this.fuel = SHIPS[this.registry.get('gameState').currentShipId]?.fuelCapacity ?? 200;
 
     this.keys = this.input.keyboard.addKeys('A,D,W,E');
     this.canEnterStarbase = false;
@@ -95,7 +95,7 @@ export default class LandingScene extends Phaser.Scene {
     this.angle = -Math.PI / 2;
     this.lander.setPosition(this.x, this.y);
     this.lander.setRotation(this.angle);
-    this.fuel = 200;
+    this.fuel = SHIPS[this.registry.get('gameState').currentShipId]?.fuelCapacity ?? 200;
     this.takeoffPhase = 'manual';
     this.takeoffDone = false;
     this.exitThresholdY = 130;

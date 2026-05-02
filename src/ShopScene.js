@@ -402,7 +402,7 @@ export default class ShopScene extends Phaser.Scene {
         actionPrefix = 'Trade';
       }
       const can = this.state.credits >= cost;
-      const label = `${s.name} — H${s.maxHull}/S${s.maxShield} • Acc${s.accel} • Cargo ${s.cargoSlots}`;
+      const label = `${s.name} — H${s.maxHull}/S${s.maxShield} • Acc${s.accel} • Cargo ${s.cargoSlots} • Fuel ${s.fuelCapacity ?? 200}`;
       this.addRow(i++, label,
         `${actionPrefix}: ${cost} credits`,
         can ? '#a8dcff' : '#7a3a3a',

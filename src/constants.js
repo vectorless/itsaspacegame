@@ -16,7 +16,7 @@ export const SHIPS = {
     id: 'scout', name: 'Scout', desc: 'Fast and fragile',
     rotSpeed: 5.0, accel: 320, reverseAccel: 200, maxSpeed: 540, radius: 12,
     maxShield: 80, maxHull: 60,
-    cargoSlots: 4, cost: 200, sprite: 'ship_scout',
+    cargoSlots: 4, cost: 200, sprite: 'ship_scout', fuelCapacity: 140,
     hardpoints: [
       { id: 'fwd',  x: 10, y: 0,  label: 'Nose' },
       { id: 'rear', x: -8, y: 0,  label: 'Rear' }
@@ -26,7 +26,7 @@ export const SHIPS = {
     id: 'cruiser', name: 'Cruiser', desc: 'Nimble multi-role fighter',
     rotSpeed: 3.5, accel: 380, reverseAccel: 220, maxSpeed: 380, radius: 14,
     maxShield: 100, maxHull: 100,
-    cargoSlots: 8, cost: 0, sprite: 'ship',
+    cargoSlots: 8, cost: 0, sprite: 'ship', fuelCapacity: 200,
     hardpoints: [
       { id: 'fwd',   x: 12, y: 0,   label: 'Nose' },
       { id: 'left',  x: -4, y: -10, label: 'Left wing' },
@@ -37,7 +37,7 @@ export const SHIPS = {
     id: 'heavy', name: 'Heavy', desc: 'Slow and tanky',
     rotSpeed: 2.4, accel: 150, reverseAccel: 100, maxSpeed: 320, radius: 18,
     maxShield: 180, maxHull: 200,
-    cargoSlots: 16, cost: 1500, sprite: 'ship_heavy',
+    cargoSlots: 16, cost: 1500, sprite: 'ship_heavy', fuelCapacity: 320,
     hardpoints: [
       { id: 'fwd1',  x: 16, y: -4,  label: 'Top fwd' },
       { id: 'fwd2',  x: 16, y: 4,   label: 'Btm fwd' },
