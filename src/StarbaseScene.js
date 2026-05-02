@@ -201,6 +201,14 @@ export default class StarbaseScene extends Phaser.Scene {
   }
 
   interact(prop) {
+    try {
+      this.doInteract(prop);
+    } catch (err) {
+      console.error('[StarbaseScene.interact]', prop?.type, err);
+    }
+  }
+
+  doInteract(prop) {
     if (prop.type === 'engineering') {
       this.scene.pause();
       this.scene.launch('ShopScene', { from: 'StarbaseScene' });
@@ -223,7 +231,15 @@ export default class StarbaseScene extends Phaser.Scene {
     }
   }
 
-  update(_time, deltaMs) {
+  update(time, deltaMs) {
+    try {
+      this._update(time, deltaMs);
+    } catch (err) {
+      console.error('[StarbaseScene.update]', err);
+    }
+  }
+
+  _update(_time, deltaMs) {
     const dt = Math.min(deltaMs, 33) / 1000;
     const k = this.keys;
     const c = this.controller;

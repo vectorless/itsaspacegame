@@ -16,6 +16,20 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   create() {
+    try {
+      this._create();
+    } catch (err) {
+      console.error('[ShopScene.create]', err);
+      const w = this.scale.width, h = this.scale.height;
+      this.add.rectangle(0, 0, w, h, 0x000000, 0.9).setOrigin(0, 0);
+      this.add.text(w / 2, h / 2, `ShopScene crashed:\n${err && err.message}\nESC to close`, {
+        fontFamily: 'monospace', fontSize: '14px', color: '#ff8080', align: 'center'
+      }).setOrigin(0.5);
+      this.input.keyboard.once('keydown-ESC', () => this.close());
+    }
+  }
+
+  _create() {
     this.state = this.registry.get('gameState');
 
     const w = this.scale.width;
