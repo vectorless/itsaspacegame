@@ -9,6 +9,7 @@ const SHIP_SCALE = 6;
 function weaponSprite(id) {
   if (id === 'railgun') return 'railshot';
   if (id === 'missile' || id === 'homing') return 'missile';
+  if (id === 'mining_laser') return 'railshot';
   return 'bullet';
 }
 
@@ -18,6 +19,7 @@ function weaponTint(id) {
   if (id === 'missile') return 0xff8050;
   if (id === 'homing')  return 0x66ddff;
   if (id === 'railgun') return 0xc8f0ff;
+  if (id === 'mining_laser') return 0x66ff88;
   return 0xffffff;
 }
 

@@ -144,7 +144,7 @@ export default class ShopScene extends Phaser.Scene {
     for (const id of this.state.cargo.weapons) {
       const w = WEAPONS[id];
       const sellPrice = Math.floor((w?.cost ?? 0) * DROPS.weaponSellRatio);
-      const isStarter = id === 'blaster' || id === 'missile';
+      const isStarter = id === 'blaster' || id === 'mining_laser';
       this.addRow(i++,
         `${w?.name ?? id} (weapon)`,
         isStarter ? '— starter —' : `Sell for ${sellPrice} credits`,
@@ -164,7 +164,7 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   renderWeapons() {
-    const ids = ['spread', 'homing', 'railgun'];
+    const ids = ['missile', 'spread', 'homing', 'railgun'];
     let i = 0;
     for (const id of ids) {
       const w = WEAPONS[id];

@@ -297,6 +297,14 @@ export const ENERGY = {
   laserCostPerSec: 30
 };
 
+export const MINING_LASER = {
+  range: 560,
+  extractRatePerSec: 3.0,
+  beamColor: 0x66ff88,
+  beamColorCore: 0xffffff,
+  cost: 0
+};
+
 export const LEVEL = {
   asteroidsPerLevel: 6,
   enemySpawnSpeedup: 0.85

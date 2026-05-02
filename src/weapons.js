@@ -1,4 +1,4 @@
-import { BLASTER, MISSILE, SPREAD, HOMING, RAILGUN } from './constants.js';
+import { BLASTER, MISSILE, SPREAD, HOMING, RAILGUN, MINING_LASER } from './constants.js';
 
 function shoot(group, ship, aim, speed, ttl, damage, opts = {}) {
   const proj = group.get();
@@ -54,10 +54,15 @@ export const WEAPONS = {
     desc: 'Standard rapid-fire',
     cooldownMs: BLASTER.cooldownMs, fire: fireBlaster, cost: 0
   },
+  mining_laser: {
+    id: 'mining_laser', name: 'Mining Laser',
+    desc: 'Continuous beam, extracts ore (no fragment)',
+    cooldownMs: 0, fire: null, cost: 0
+  },
   missile: {
     id: 'missile', name: 'Missile',
     desc: 'Heavy dumb-fire',
-    cooldownMs: MISSILE.cooldownMs, fire: fireMissile, cost: 0
+    cooldownMs: MISSILE.cooldownMs, fire: fireMissile, cost: 25
   },
   spread: {
     id: 'spread', name: 'Scatter',
@@ -78,6 +83,7 @@ export const WEAPONS = {
 
 export const STARTING_AMMO = {
   blaster: Infinity,
+  mining_laser: Infinity,
   missile: MISSILE.startAmmo,
   spread: Infinity,
   homing: HOMING.startAmmo,

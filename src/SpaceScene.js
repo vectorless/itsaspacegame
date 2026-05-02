@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
   VIEW_W, VIEW_H, WORLD_W, WORLD_H,
   ASTEROID_COUNT, MISSILE, BLASTER, RAILGUN, HOMING,
-  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, ENERGY
+  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, ENERGY, MINING_LASER
 } from './constants.js';
 import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
@@ -102,6 +102,9 @@ export default class SpaceScene extends Phaser.Scene {
     this.ship = this.physics.add.image(this.controller.x, this.controller.y, shipCfg.sprite).setDepth(10);
     this.applyShipBody(shipCfg);
     this.ship.body.setAllowGravity(false);
+
+    this.laserGfx = this.add.graphics().setDepth(11);
+    this.miningExtractAccum = 0;
 
     this.crosshair = this.add.image(this.scale.width / 2, this.scale.height / 2, 'crosshair')
       .setScrollFactor(0)
@@ -552,6 +555,57 @@ export default class SpaceScene extends Phaser.Scene {
     });
   }
 
+  updateMiningLaser(fireHeld, dtSec) {
+    this.laserGfx.clear();
+    if (!fireHeld) { this.miningExtractAccum = 0; return; }
+    const cost = ENERGY.laserCostPerSec * dtSec;
+    if (this.gameState.energy < cost) { this.miningExtractAccum = 0; return; }
+    this.gameState.energy = Math.max(0, this.gameState.energy - cost);
+
+    const aim = this.controller.aimAngle ?? this.controller.angle;
+    const dx = Math.cos(aim);
+    const dy = Math.sin(aim);
+    const sx = this.controller.x;
+    const sy = this.controller.y;
+    let endDist = MINING_LASER.range;
+    let hitAsteroid = null;
+
+    this.asteroidGroup.children.iterate((a) => {
+      if (!a || !a.active) return;
+      const vx = a.x - sx;
+      const vy = a.y - sy;
+      const along = vx * dx + vy * dy;
+      if (along < 0 || along > endDist) return;
+      const projX = sx + dx * along;
+      const projY = sy + dy * along;
+      const perp = Math.hypot(a.x - projX, a.y - projY);
+      const r = (a.width || 56) * (a.scaleValue || 1) * 0.5;
+      if (perp < r) {
+        endDist = along;
+        hitAsteroid = a;
+      }
+    });
+
+    const tipX = sx + dx * endDist;
+    const tipY = sy + dy * endDist;
+
+    this.laserGfx.lineStyle(4, MINING_LASER.beamColor, 0.35);
+    this.laserGfx.lineBetween(sx, sy, tipX, tipY);
+    this.laserGfx.lineStyle(1, MINING_LASER.beamColorCore, 0.95);
+    this.laserGfx.lineBetween(sx, sy, tipX, tipY);
+
+    if (hitAsteroid) {
+      this.miningExtractAccum += MINING_LASER.extractRatePerSec * dtSec;
+      while (this.miningExtractAccum >= 1) {
+        const added = addItem(this.gameState, 'ore', null, 1);
+        if (added === false || added === 0) { this.miningExtractAccum = 0; break; }
+        this.miningExtractAccum -= 1;
+      }
+    } else {
+      this.miningExtractAccum = 0;
+    }
+  }
+
   spawnDeathSites() {
     if (!this.gameState.deathSites) return;
     for (const ds of this.gameState.deathSites) {
@@ -755,9 +809,16 @@ export default class SpaceScene extends Phaser.Scene {
     }
 
     const fireHeld = (k.SPACE.isDown || pointer.leftButtonDown()) && this.gameState.currentWeapon;
-    if (fireHeld) {
+
+    if (this.gameState.currentWeapon === 'mining_laser') {
+      this.updateMiningLaser(fireHeld, dt);
+    } else {
+      this.laserGfx.clear();
+    }
+
+    if (fireHeld && this.gameState.currentWeapon !== 'mining_laser') {
       const weapon = WEAPONS[this.gameState.currentWeapon];
-      if (weapon && time - this.lastFireTime >= weapon.cooldownMs) {
+      if (weapon && weapon.fire && time - this.lastFireTime >= weapon.cooldownMs) {
         const ammo = this.gameState.ammo[this.gameState.currentWeapon];
         if (ammo === undefined || ammo > 0) {
           weapon.fire(this, this.controller);

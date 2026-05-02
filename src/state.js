@@ -7,8 +7,8 @@ export function freshGameState() {
   const state = {
     currentShipId: shipId,
     currentWeapon: 'blaster',
-    cargo: { weapons: ['blaster', 'missile'], exotics: [], scrap: 0, ore: 0 },
-    ammo: { blaster: Infinity, missile: MISSILE.startAmmo },
+    cargo: { weapons: ['blaster', 'mining_laser'], exotics: [], scrap: 0, ore: 0 },
+    ammo: { blaster: Infinity, mining_laser: Infinity },
     speed: 0,
     credits: 1000,
     shield: ship.maxShield,
@@ -39,11 +39,11 @@ export function ensureGameState(registry) {
 }
 
 export function resetAfterDeath(state) {
-  state.cargo.weapons = ['blaster', 'missile'];
+  state.cargo.weapons = ['blaster', 'mining_laser'];
   state.cargo.exotics = [];
   state.cargo.scrap = 0;
   state.cargo.ore = 0;
-  state.ammo = { blaster: Infinity, missile: MISSILE.startAmmo };
+  state.ammo = { blaster: Infinity, mining_laser: Infinity };
   const ship = SHIPS[state.currentShipId];
   state.shield = ship.maxShield + (state.shieldLevel ?? 0) * 25;
   state.maxShield = ship.maxShield + (state.shieldLevel ?? 0) * 25;

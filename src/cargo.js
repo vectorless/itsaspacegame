@@ -2,11 +2,11 @@ import { CARGO, SHIPS, EXOTICS, DROPS, MISSILE, HOMING } from './constants.js';
 import { WEAPONS, STARTING_AMMO } from './weapons.js';
 
 export function freshCargo() {
-  return { weapons: ['blaster', 'missile'], exotics: [], scrap: 0, ore: 0 };
+  return { weapons: ['blaster', 'mining_laser'], exotics: [], scrap: 0, ore: 0 };
 }
 
 export function freshAmmo() {
-  return { blaster: Infinity, missile: MISSILE.startAmmo };
+  return { blaster: Infinity, mining_laser: Infinity };
 }
 
 export function autoEquipFromCargo(state) {
