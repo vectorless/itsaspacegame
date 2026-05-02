@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WEAPONS } from './weapons.js';
 import { WORLD_W, WORLD_H, COLORS, SHIPS } from './constants.js';
+import { MISSIONS } from './missions.js';
 import { usedSlots, maxSlots } from './cargo.js';
 
 const MINIMAP_SIZE = 160;
@@ -153,11 +154,14 @@ export default class HUDScene extends Phaser.Scene {
     }
 
     if (space.missionZones) {
-      g.fillStyle(0xffaa50, 1);
       for (const z of space.missionZones) {
         if (!z.active) continue;
+        const m = MISSIONS[z.missionId];
+        const fill = m?.markerColor ?? 0xffaa50;
+        const stroke = m?.markerColor ? 0xcfb8ff : 0xffe080;
+        g.fillStyle(fill, 1);
         g.fillCircle(ox + z.x * sx, oy + z.y * sy, 3.5);
-        g.lineStyle(1, 0xffe080, 0.9);
+        g.lineStyle(1, stroke, 0.9);
         g.strokeCircle(ox + z.x * sx, oy + z.y * sy, 5.5);
       }
     }

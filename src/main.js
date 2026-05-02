@@ -11,6 +11,7 @@ import StarbaseScene from './StarbaseScene.js';
 import MissionScene from './MissionScene.js';
 import AllianceBattleScene from './AllianceBattleScene.js';
 import InsuranceScene from './InsuranceScene.js';
+import AlienEncounterScene from './AlienEncounterScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -23,7 +24,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false }
   },
-  scene: [BootScene, SpaceScene, HUDScene, GameOverScene, ShopScene, LandingScene, SchematicScene, StarbaseScene, MissionScene, AllianceBattleScene, InsuranceScene]
+  scene: [BootScene, SpaceScene, HUDScene, GameOverScene, ShopScene, LandingScene, SchematicScene, StarbaseScene, MissionScene, AllianceBattleScene, InsuranceScene, AlienEncounterScene]
 };
 
 new Phaser.Game(config);

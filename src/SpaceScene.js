@@ -266,15 +266,21 @@ export default class SpaceScene extends Phaser.Scene {
         if (farFromCenter && farFromStation && farFromPortal && farFromBh) break;
       } while (tries < 30);
 
+      const m = MISSIONS[id];
       const zone = this.physics.add.image(x, y, 'mission_zone').setDepth(2);
       zone.body.setAllowGravity(false);
       zone.body.setImmovable(true);
       zone.missionId = id;
+      if (m.markerColor) zone.setTint(m.markerColor);
       this.missionZones.push(zone);
       this.tweens.add({ targets: zone, angle: 360, duration: 14000, repeat: -1 });
 
-      const label = this.add.text(x, y - 80, `MISSION: ${id.replace(/_/g, ' ').toUpperCase()}`, {
-        fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#ffe28a'
+      const labelStr = m.markerGlyph
+        ? `${m.markerGlyph}  ${m.name.toUpperCase()}`
+        : `MISSION: ${m.name.toUpperCase()}`;
+      const labelColor = m.markerColor ? '#cfb8ff' : '#ffe28a';
+      const label = this.add.text(x, y - 80, labelStr, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: labelColor
       }).setOrigin(0.5).setDepth(2);
       zone.label = label;
 

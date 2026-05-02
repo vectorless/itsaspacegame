@@ -26,7 +26,7 @@ export function freshGameState() {
     maxEnergy: ENERGY.max,
     charging: false,
     deathSites: [],
-    missions: { support_alliance: 'available', mine_ore: 'available' },
+    missions: { support_alliance: 'available', mine_ore: 'available', unknown_signal: 'available' },
     missionFlags: {},
     missionProgress: {},
     starbasePickups: [],
