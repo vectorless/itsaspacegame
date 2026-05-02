@@ -42,7 +42,7 @@ export function spawnWeaponDrop(scene, x, y, weaponId) {
 }
 
 function fitsCargo(state, c) {
-  if (c.kind === 'ore') return true;
+  if (c.kind === 'ore') return canAdd(state, 'ore');
   if (c.kind === 'scrap') return canAdd(state, 'scrap');
   if (c.kind === 'exotic') return canAdd(state, 'exotic');
   if (c.kind === 'weapon') return canAdd(state, 'weapon', c.payload);
@@ -51,10 +51,7 @@ function fitsCargo(state, c) {
 
 function collect(scene, c) {
   const state = scene.gameState;
-  if (c.kind === 'ore') {
-    state.ore = (state.ore || 0) + 1;
-    return true;
-  }
+  if (c.kind === 'ore') return addItem(state, 'ore', null, 1) !== false;
   if (c.kind === 'scrap') return addItem(state, 'scrap', null, 1) !== false;
   if (c.kind === 'exotic') return addItem(state, 'exotic', c.payload);
   if (c.kind === 'weapon') return addItem(state, 'weapon', c.payload);

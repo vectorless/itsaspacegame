@@ -85,6 +85,8 @@ export default class SchematicScene extends Phaser.Scene {
 
     this.input.keyboard.on('keydown-F', () => this.close());
     this.input.keyboard.on('keydown-ESC', () => this.close());
+
+    this.input.setDefaultCursor('default');
   }
 
   renderItems() {
@@ -164,6 +166,7 @@ export default class SchematicScene extends Phaser.Scene {
   }
 
   close() {
+    this.input.setDefaultCursor('none');
     this.scene.stop('SchematicScene');
     this.scene.resume('SpaceScene');
   }

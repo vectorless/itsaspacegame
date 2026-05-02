@@ -33,10 +33,11 @@ export default class HUDScene extends Phaser.Scene {
     this.ammoText = this.add.text(12, 116, '', style);
     this.speedText = this.add.text(12, 134, '', style);
     this.oreText = this.add.text(12, 156, '', { ...style, color: '#ffe28a', fontSize: '16px' });
-    this.scrapText = this.add.text(12, 178, '', { ...style, color: '#b8b8c8' });
-    this.cargoText = this.add.text(12, 196, '', { ...style, color: '#cfe6ff' });
-    this.levelText = this.add.text(12, 218, '', { ...style, color: '#a0c0ff' });
-    this.deviceText = this.add.text(12, 236, '', { ...style, color: '#ff80ff' });
+    this.rawOreText = this.add.text(12, 178, '', { ...style, color: '#ffd060' });
+    this.scrapText = this.add.text(12, 196, '', { ...style, color: '#b8b8c8' });
+    this.cargoText = this.add.text(12, 214, '', { ...style, color: '#cfe6ff' });
+    this.levelText = this.add.text(12, 236, '', { ...style, color: '#a0c0ff' });
+    this.deviceText = this.add.text(12, 254, '', { ...style, color: '#ff80ff' });
 
     this.helpText = this.add.text(12, this.scale.height - 24,
       'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E cycle • F loadout • dock star base',
@@ -72,8 +73,9 @@ export default class HUDScene extends Phaser.Scene {
     this.weaponText.setText(`Weapon: ${weapon ? weapon.name : '—'}`);
     this.ammoText.setText(`Ammo:   ${weapon && Number.isFinite(ammo) ? ammo : '∞'}`);
     this.speedText.setText(`Speed:  ${Math.round(state.speed)}`);
-    this.oreText.setText(`Ore:    ${state.ore ?? 0}`);
-    this.scrapText.setText(`Scrap:  ${state.cargo.scrap}`);
+    this.oreText.setText(`Credits: ${state.ore ?? 0}`);
+    this.rawOreText.setText(`Raw ore: ${state.cargo.ore || 0}`);
+    this.scrapText.setText(`Scrap:   ${state.cargo.scrap}`);
     this.cargoText.setText(`Cargo:  ${usedSlots(state.cargo)} / ${maxSlots(state)}`);
     this.levelText.setText(`Sector ${state.level ?? 1}`);
     this.deviceText.setText(state.hasPortalDevice ? 'Portal Device  ✓' : '');

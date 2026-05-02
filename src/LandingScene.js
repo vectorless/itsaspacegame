@@ -6,6 +6,10 @@ export default class LandingScene extends Phaser.Scene {
     super('LandingScene');
   }
 
+  init(data = {}) {
+    this.mode = data.mode ?? 'land';
+  }
+
   create() {
     const w = this.scale.width;
     const h = this.scale.height;
@@ -66,14 +70,36 @@ export default class LandingScene extends Phaser.Scene {
     this.altText = this.add.text(10, 10, '', style);
     this.vText = this.add.text(10, 28, '', style);
     this.fuelText = this.add.text(10, 46, '', style);
-    this.add.text(w / 2, 14, 'LAND ON THE LIT PAD — speed < 30 — keep upright', {
-      ...style, color: '#88aacc'
-    }).setOrigin(0.5);
-    this.add.text(w / 2, 32, 'A/D rotate  •  W thrust', {
-      ...style, color: '#5a7090'
-    }).setOrigin(0.5);
 
     this.outcomeShown = false;
+
+    if (this.mode === 'takeoff') {
+      this.setupTakeoff();
+    } else {
+      this.add.text(w / 2, 14, 'LAND ON THE LIT PAD — speed < 30 — keep upright', {
+        ...style, color: '#88aacc'
+      }).setOrigin(0.5);
+      this.add.text(w / 2, 32, 'A/D rotate  •  W thrust', {
+        ...style, color: '#5a7090'
+      }).setOrigin(0.5);
+    }
+  }
+
+  setupTakeoff() {
+    this.x = (this.padX1 + this.padX2) / 2;
+    this.y = this.padY - 12;
+    this.vx = 0;
+    this.vy = 0;
+    this.angle = -Math.PI / 2;
+    this.lander.setPosition(this.x, this.y);
+    this.lander.setRotation(this.angle);
+    this.fuel = LANDING.fuelStart * 4;
+    this.takeoffStartTime = this.time.now + 500;
+    this.takeoffDone = false;
+
+    this.add.text(this.scale.width / 2, 24, 'DEPARTING', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#88c0ff'
+    }).setOrigin(0.5);
   }
 
   drawTerrain() {
@@ -100,8 +126,14 @@ export default class LandingScene extends Phaser.Scene {
   }
 
   update(_time, deltaMs) {
-    if (this.outcomeShown) return;
     const dt = deltaMs / 1000;
+
+    if (this.mode === 'takeoff') {
+      this.updateTakeoff(dt);
+      return;
+    }
+
+    if (this.outcomeShown) return;
 
     if (this.keys.A.isDown) this.angle -= LANDING.rotSpeed * dt;
     if (this.keys.D.isDown) this.angle += LANDING.rotSpeed * dt;
@@ -148,6 +180,37 @@ export default class LandingScene extends Phaser.Scene {
     this.altText.setText(`Alt:  ${Math.round(altitude)}`);
     this.vText.setText(`vx: ${this.vx.toFixed(1)}   vy: ${this.vy.toFixed(1)}`);
     this.fuelText.setText(`Fuel: ${Math.round(this.fuel)}`);
+  }
+
+  updateTakeoff(dt) {
+    if (this.takeoffDone) return;
+
+    if (this.time.now > this.takeoffStartTime) {
+      this.vy -= LANDING.thrustAccel * 1.4 * dt;
+
+      const back = 14;
+      this.thrust.setPosition(
+        this.x - Math.cos(this.angle) * back,
+        this.y - Math.sin(this.angle) * back
+      );
+      this.thrust.setRotation(this.angle + Math.PI);
+      this.thrust.setScale(0.85 + Math.random() * 0.3, 0.9 + Math.random() * 0.2);
+      this.thrust.setAlpha(0.75 + Math.random() * 0.25);
+      this.thrust.setVisible(true);
+    }
+
+    this.y += this.vy * dt;
+    this.lander.setPosition(this.x, this.y);
+
+    this.altText.setText('');
+    this.vText.setText('');
+    this.fuelText.setText('');
+
+    if (this.y < -40) {
+      this.takeoffDone = true;
+      this.scene.stop();
+      this.scene.resume('SpaceScene');
+    }
   }
 
   terrainYAt(x) {

@@ -2,7 +2,7 @@ import { CARGO, SHIPS, EXOTICS, DROPS, MISSILE, HOMING } from './constants.js';
 import { WEAPONS, STARTING_AMMO } from './weapons.js';
 
 export function freshCargo() {
-  return { weapons: ['blaster', 'missile'], exotics: [], scrap: 0 };
+  return { weapons: ['blaster', 'missile'], exotics: [], scrap: 0, ore: 0 };
 }
 
 export function freshAmmo() {
@@ -45,7 +45,10 @@ export function ensureHardpointsValid(state) {
 }
 
 export function usedSlots(cargo) {
-  return cargo.weapons.length + cargo.exotics.length + Math.ceil(cargo.scrap / CARGO.scrapPerSlot);
+  return cargo.weapons.length
+    + cargo.exotics.length
+    + Math.ceil((cargo.scrap || 0) / CARGO.scrapPerSlot)
+    + Math.ceil((cargo.ore || 0) / CARGO.orePerSlot);
 }
 
 export function maxSlots(state) {
@@ -56,10 +59,11 @@ export function freeSlots(state) {
   return maxSlots(state) - usedSlots(state.cargo);
 }
 
-function scrapWouldFit(state, additional) {
+function stackWouldFit(state, currentQty, additional, perSlot, otherKindQty, otherKindPerSlot) {
   const c = state.cargo;
-  const newScrap = c.scrap + additional;
-  const newSlotCount = c.weapons.length + c.exotics.length + Math.ceil(newScrap / CARGO.scrapPerSlot);
+  const newQty = currentQty + additional;
+  const otherSlots = Math.ceil(otherKindQty / otherKindPerSlot);
+  const newSlotCount = c.weapons.length + c.exotics.length + Math.ceil(newQty / perSlot) + otherSlots;
   return newSlotCount <= maxSlots(state);
 }
 
@@ -69,7 +73,8 @@ export function canAdd(state, kind, id) {
     return freeSlots(state) >= 1;
   }
   if (kind === 'exotic') return freeSlots(state) >= 1;
-  if (kind === 'scrap') return scrapWouldFit(state, 1);
+  if (kind === 'scrap') return stackWouldFit(state, state.cargo.scrap, 1, CARGO.scrapPerSlot, state.cargo.ore || 0, CARGO.orePerSlot);
+  if (kind === 'ore') return stackWouldFit(state, state.cargo.ore || 0, 1, CARGO.orePerSlot, state.cargo.scrap, CARGO.scrapPerSlot);
   return false;
 }
 
@@ -87,14 +92,28 @@ export function addItem(state, kind, id, qty = 1) {
     return true;
   }
   if (kind === 'scrap') {
-    if (!scrapWouldFit(state, qty)) {
-      const room = (maxSlots(state) - state.cargo.weapons.length - state.cargo.exotics.length) * CARGO.scrapPerSlot;
+    if (!stackWouldFit(state, state.cargo.scrap, qty, CARGO.scrapPerSlot, state.cargo.ore || 0, CARGO.orePerSlot)) {
+      const otherSlots = Math.ceil((state.cargo.ore || 0) / CARGO.orePerSlot);
+      const room = (maxSlots(state) - state.cargo.weapons.length - state.cargo.exotics.length - otherSlots) * CARGO.scrapPerSlot;
       const fit = Math.max(0, room - state.cargo.scrap);
       if (fit <= 0) return false;
       state.cargo.scrap += fit;
       return fit;
     }
     state.cargo.scrap += qty;
+    return qty;
+  }
+  if (kind === 'ore') {
+    state.cargo.ore = state.cargo.ore || 0;
+    if (!stackWouldFit(state, state.cargo.ore, qty, CARGO.orePerSlot, state.cargo.scrap, CARGO.scrapPerSlot)) {
+      const otherSlots = Math.ceil(state.cargo.scrap / CARGO.scrapPerSlot);
+      const room = (maxSlots(state) - state.cargo.weapons.length - state.cargo.exotics.length - otherSlots) * CARGO.orePerSlot;
+      const fit = Math.max(0, room - state.cargo.ore);
+      if (fit <= 0) return false;
+      state.cargo.ore += fit;
+      return fit;
+    }
+    state.cargo.ore += qty;
     return qty;
   }
   return false;
@@ -127,6 +146,12 @@ export function sellItem(state, kind, idOrIndex) {
     const value = state.cargo.scrap * DROPS.scrapValueOre;
     state.ore += value;
     state.cargo.scrap = 0;
+    return value;
+  }
+  if (kind === 'ore') {
+    const value = state.cargo.ore || 0;
+    state.ore += value;
+    state.cargo.ore = 0;
     return value;
   }
   return 0;

@@ -49,7 +49,8 @@ export const SHIPS = {
 };
 
 export const CARGO = {
-  scrapPerSlot: 30
+  scrapPerSlot: 30,
+  orePerSlot: 10
 };
 
 export const EXOTICS = {

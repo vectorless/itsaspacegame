@@ -53,6 +53,8 @@ export default class ShopScene extends Phaser.Scene {
     this.input.keyboard.once('keydown-ESC', () => this.close());
     this.input.on('pointerdown', (p) => { if (p.button === 2) this.close(); });
 
+    this.input.setDefaultCursor('default');
+
     this.refresh();
   }
 
@@ -62,12 +64,13 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   close() {
+    this.input.setDefaultCursor('none');
     this.scene.stop('ShopScene');
-    this.scene.resume('SpaceScene');
+    this.scene.launch('LandingScene', { mode: 'takeoff' });
   }
 
   refresh() {
-    this.headerText.setText(`Ore: ${this.state.ore}    Scrap: ${this.state.cargo.scrap}    Cargo: ${usedSlots(this.state.cargo)}/${maxSlots(this.state)}`);
+    this.headerText.setText(`Credits: ${this.state.ore}    Raw ore: ${this.state.cargo.ore || 0}    Scrap: ${this.state.cargo.scrap}    Cargo: ${usedSlots(this.state.cargo)}/${maxSlots(this.state)}`);
 
     for (const t of this.tabButtons) {
       const active = t.id === this.currentTab;
@@ -106,11 +109,18 @@ export default class ShopScene extends Phaser.Scene {
 
   renderCargo() {
     let i = 0;
+    if ((this.state.cargo.ore || 0) > 0) {
+      const value = this.state.cargo.ore;
+      this.addRow(i++,
+        `Raw ore × ${this.state.cargo.ore}`,
+        `Sell all for ${value} credits`, '#ffe28a',
+        () => { sellItem(this.state, 'ore', null); this.refresh(); });
+    }
     if (this.state.cargo.scrap > 0) {
       const value = this.state.cargo.scrap * DROPS.scrapValueOre;
       this.addRow(i++,
         `Scrap × ${this.state.cargo.scrap}`,
-        `Sell all for ${value} ore`, '#a8dcff',
+        `Sell all for ${value} credits`, '#b8b8c8',
         () => { sellItem(this.state, 'scrap', null); this.refresh(); });
     }
     for (const id of this.state.cargo.weapons) {
