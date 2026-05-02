@@ -25,7 +25,8 @@ export function freshGameState() {
     charging: false,
     deathSites: [],
     missions: { support_alliance: 'available' },
-    missionFlags: {}
+    missionFlags: {},
+    starbasePickups: []
   };
   autoEquipFromCargo(state);
   return state;

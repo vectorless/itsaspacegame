@@ -401,19 +401,75 @@ export default class AllianceBattleScene extends Phaser.Scene {
       this.gameState.credits += m.reward;
       this.gameState.missions[this.missionId] = 'completed';
       if (typeof m.onComplete === 'function') m.onComplete(this.gameState);
+      if (Array.isArray(m.physicalRewards) && m.physicalRewards.length) {
+        this.gameState.starbasePickups = (this.gameState.starbasePickups || []).concat(m.physicalRewards);
+      }
     }
-    this.add.rectangle(0, 0, VIEW_W, VIEW_H, 0x000000, 0.55).setOrigin(0, 0).setScrollFactor(0).setDepth(120);
-    this.add.text(VIEW_W / 2, VIEW_H / 2 - 30, 'MISSION COMPLETE', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '36px', color: '#88ffaa'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(121);
-    this.add.text(VIEW_W / 2, VIEW_H / 2 + 12, m ? `+${m.reward} credits` : '+credits', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '16px', color: '#ffe28a'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(121);
-    this.time.delayedCall(2200, () => {
-      this.input.setDefaultCursor('none');
-      this.scene.stop();
-      this.scene.run('SpaceScene');
+    this.showVictoryScreen(m);
+  }
+
+  showVictoryScreen(m) {
+    const w = VIEW_W, h = VIEW_H;
+    const cx = w / 2, cy = h / 2;
+
+    const overlay = this.add.rectangle(0, 0, w, h, 0x000814, 0).setOrigin(0, 0).setScrollFactor(0).setDepth(120);
+    this.tweens.add({ targets: overlay, alpha: 0.78, duration: 600 });
+
+    const panel = this.add.rectangle(cx, cy, 540, 380, 0x101a14, 0).setStrokeStyle(2, 0xffaa50, 0.9).setScrollFactor(0).setDepth(121);
+    this.tweens.add({ targets: panel, alpha: 0.96, duration: 700, delay: 300 });
+
+    const title = this.add.text(cx, cy - 130, 'MISSION COMPLETE', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '32px', color: '#88ffaa'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0).setScale(0.3);
+    this.tweens.add({ targets: title, alpha: 1, scale: 1, duration: 600, ease: 'Back.easeOut', delay: 600 });
+
+    const subtitle = this.add.text(cx, cy - 92, m?.name ?? '', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: subtitle, alpha: 1, duration: 400, delay: 1100 });
+
+    const divider = this.add.rectangle(cx, cy - 60, 0, 1, 0xffaa50, 0.6).setScrollFactor(0).setDepth(122);
+    this.tweens.add({ targets: divider, width: 400, duration: 500, delay: 1300, ease: 'Cubic.easeOut' });
+
+    const creditsLabel = this.add.text(cx, cy - 24, 'Credits wired to your account', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#88aacc'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: creditsLabel, alpha: 1, duration: 400, delay: 1700 });
+
+    const creditsAmount = this.add.text(cx, cy + 8, `+${(m?.reward ?? 0).toLocaleString()} cr`, {
+      fontFamily: 'system-ui, sans-serif', fontSize: '30px', color: '#ffe28a'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0).setScale(0.4);
+    this.tweens.add({ targets: creditsAmount, alpha: 1, scale: 1, duration: 500, delay: 2000, ease: 'Back.easeOut' });
+
+    const hasRewards = Array.isArray(m?.physicalRewards) && m.physicalRewards.length > 0;
+    const rewardsText = hasRewards
+      ? `Physical rewards waiting at the star base:\n• ${m.physicalRewards.map((r) => r.name || r.id).join('\n• ')}`
+      : 'No physical rewards this mission.';
+    const rewardsLine = this.add.text(cx, cy + 70, rewardsText, {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px',
+      color: hasRewards ? '#88ffaa' : '#5a7090', align: 'center'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: rewardsLine, alpha: 1, duration: 500, delay: 2500 });
+
+    const prompt = this.add.text(cx, cy + 140, 'Press SPACE or click to return', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#5a7090'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: prompt, alpha: 1, duration: 400, delay: 3200 });
+    this.tweens.add({ targets: prompt, alpha: 0.4, duration: 800, delay: 3700, yoyo: true, repeat: -1 });
+
+    this.time.delayedCall(3000, () => {
+      this.input.keyboard.once('keydown-SPACE', () => this.exitToSpace());
+      this.input.once('pointerdown', () => this.exitToSpace());
     });
+    this.time.delayedCall(10000, () => this.exitToSpace());
+  }
+
+  exitToSpace() {
+    if (this.exiting) return;
+    this.exiting = true;
+    this.input.setDefaultCursor('none');
+    this.scene.stop();
+    this.scene.run('SpaceScene');
   }
 
   fail() {
