@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { LANDING } from './constants.js';
+import { LANDING, EXOTICS } from './constants.js';
 
 export default class LandingScene extends Phaser.Scene {
   constructor() {
@@ -303,18 +303,31 @@ export default class LandingScene extends Phaser.Scene {
     const w = this.scale.width;
     const h = this.scale.height;
 
-    this.add.rectangle(0, 0, w, h, 0x000000, 0.45).setOrigin(0, 0).setDepth(20);
-    this.add.text(w / 2, h / 2 - 30, 'TOUCHDOWN', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '40px', color: '#66ffaa'
-    }).setOrigin(0.5).setDepth(21);
-    this.add.text(w / 2, h / 2 + 14, `Hull repaired  •  Shield refilled  •  +${LANDING.rewardOre} ore`, {
-      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff'
-    }).setOrigin(0.5).setDepth(21);
-
     const state = this.registry.get('gameState');
     state.hull = state.maxHull;
     state.shield = state.maxShield;
-    state.credits += LANDING.rewardOre;
+
+    let cargoEarnings = 0;
+    cargoEarnings += state.cargo.ore || 0;
+    cargoEarnings += state.cargo.scrap || 0;
+    for (const id of state.cargo.exotics || []) {
+      cargoEarnings += EXOTICS[id]?.value ?? 0;
+    }
+    state.cargo.ore = 0;
+    state.cargo.scrap = 0;
+    state.cargo.exotics = [];
+
+    state.credits += LANDING.rewardOre + cargoEarnings;
+
+    this.add.rectangle(0, 0, w, h, 0x000000, 0.45).setOrigin(0, 0).setDepth(20);
+    this.add.text(w / 2, h / 2 - 36, 'TOUCHDOWN', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '40px', color: '#66ffaa'
+    }).setOrigin(0.5).setDepth(21);
+    const lines = [`Hull repaired  •  Shield refilled  •  +${LANDING.rewardOre} cr docking fee`];
+    if (cargoEarnings > 0) lines.push(`Cargo sold:  +${cargoEarnings} cr`);
+    this.add.text(w / 2, h / 2 + 14, lines.join('\n'), {
+      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff', align: 'center'
+    }).setOrigin(0.5).setDepth(21);
 
     this.time.delayedCall(1500, () => {
       this.scene.start('StarbaseScene');

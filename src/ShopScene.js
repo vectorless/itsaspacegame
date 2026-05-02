@@ -48,12 +48,12 @@ export default class ShopScene extends Phaser.Scene {
       fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#ffe28a'
     }).setOrigin(0.5);
 
-    this.tabs = ['cargo', 'weapons', 'upgrades', 'ships'];
-    this.currentTab = 'cargo';
+    this.tabs = ['weapons', 'upgrades', 'ships'];
+    this.currentTab = 'weapons';
     this.tabButtons = [];
     const tabY = h / 2 - PANEL_H / 2 + 86;
     this.tabs.forEach((t, i) => {
-      const x = w / 2 - 240 + i * 160;
+      const x = w / 2 - 160 + i * 160;
       const btn = this.add.rectangle(x, tabY, 140, 28, 0x18283a, 0.95)
         .setStrokeStyle(1, 0x3aa1ff, 0.5).setInteractive({ useHandCursor: true });
       const txt = this.add.text(x, tabY, t.toUpperCase(), {
@@ -99,8 +99,7 @@ export default class ShopScene extends Phaser.Scene {
 
     this.bodyContainer.removeAll(true);
 
-    if (this.currentTab === 'cargo') this.renderCargo();
-    else if (this.currentTab === 'weapons') this.renderWeapons();
+    if (this.currentTab === 'weapons') this.renderWeapons();
     else if (this.currentTab === 'upgrades') this.renderUpgrades();
     else if (this.currentTab === 'ships') this.renderShips();
   }

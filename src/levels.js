@@ -35,7 +35,6 @@ export const LEVELS = {
     props: [
       { type: 'mission',     x: 26, y: 23 },
       { type: 'engineering', x: 28, y: 23 },
-      { type: 'repair',      x: 30, y: 23 },
       { type: 'checkpoint',  x: 32, y: 23 },
       { type: 'airlock',     x: 36, y: 23 }
     ]
