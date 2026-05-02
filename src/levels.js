@@ -4,7 +4,7 @@ export const LEVELS = {
     width: 40,
     height: 25,
     tileSize: 24,
-    spawn: { x: 2, y: 22, gravity: 'down' },
+    spawn: { x: 35, y: 22, gravity: 'down' },
     tiles: [
       '########################################',
       '#......................................#',
@@ -33,9 +33,9 @@ export const LEVELS = {
       '########################################'
     ].join('\n'),
     props: [
-      { type: 'checkpoint',  x: 4,  y: 23 },
-      { type: 'repair',      x: 8,  y: 23 },
-      { type: 'engineering', x: 27, y: 23 },
+      { type: 'engineering', x: 28, y: 23 },
+      { type: 'repair',      x: 30, y: 23 },
+      { type: 'checkpoint',  x: 32, y: 23 },
       { type: 'airlock',     x: 36, y: 23 }
     ]
   }

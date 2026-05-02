@@ -375,22 +375,23 @@ export default class SpaceScene extends Phaser.Scene {
 
   repositionShipClearOfStation() {
     if (!this.controller || !this.stations) return;
-    const safeRadius = 160;
+    const nearRadius = 400;
+    const launchDistance = 1400;
     for (const s of this.stations) {
       const dx = this.controller.x - s.x;
       const dy = this.controller.y - s.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < safeRadius) {
-        const ang = dist > 0.001
-          ? Math.atan2(dy, dx)
-          : Math.random() * Math.PI * 2;
-        this.controller.x = s.x + Math.cos(ang) * safeRadius;
-        this.controller.y = s.y + Math.sin(ang) * safeRadius;
-        this.controller.vx = Math.cos(ang) * 40;
-        this.controller.vy = Math.sin(ang) * 40;
-        if (this.ship) this.ship.setPosition(this.controller.x, this.controller.y);
-        break;
-      }
+      if (Math.hypot(dx, dy) > nearRadius) continue;
+      const ang = Math.random() * Math.PI * 2;
+      let nx = s.x + Math.cos(ang) * launchDistance;
+      let ny = s.y + Math.sin(ang) * launchDistance;
+      nx = Phaser.Math.Clamp(nx, 200, WORLD_W - 200);
+      ny = Phaser.Math.Clamp(ny, 200, WORLD_H - 200);
+      this.controller.x = nx;
+      this.controller.y = ny;
+      this.controller.vx = 0;
+      this.controller.vy = 0;
+      if (this.ship) this.ship.setPosition(nx, ny);
+      break;
     }
   }
 

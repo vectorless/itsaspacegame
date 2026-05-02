@@ -317,8 +317,7 @@ export default class LandingScene extends Phaser.Scene {
     state.credits += LANDING.rewardOre;
 
     this.time.delayedCall(1500, () => {
-      this.scene.stop();
-      this.scene.launch('StarbaseScene');
+      this.scene.start('StarbaseScene');
     });
   }
 

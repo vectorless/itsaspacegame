@@ -18,6 +18,7 @@ export default class StarbaseScene extends Phaser.Scene {
   }
 
   create() {
+    this.scene.bringToTop();
     this.cameras.main.setBackgroundColor('#0a0e18');
     this.input.setDefaultCursor('default');
 
