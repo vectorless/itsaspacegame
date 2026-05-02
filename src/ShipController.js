@@ -23,7 +23,7 @@ export default class ShipController {
     const speed = Math.hypot(this.vx, this.vy);
     const fwdSpeed = this.vx * Math.cos(this.angle) + this.vy * Math.sin(this.angle);
     const ratio = Math.max(0, Math.min(1, fwdSpeed / this.config.maxSpeed));
-    const falloff = Math.max(0.05, 1 - ratio * ratio);
+    const falloff = Math.max(0.1, 1 - ratio * ratio * 0.75);
     const a = this.config.accel * falloff;
     this.vx += Math.cos(this.angle) * a * dtSec;
     this.vy += Math.sin(this.angle) * a * dtSec;

@@ -24,7 +24,7 @@ export const SHIPS = {
   },
   cruiser: {
     id: 'cruiser', name: 'Cruiser', desc: 'Nimble multi-role fighter',
-    rotSpeed: 3.5, accel: 380, reverseAccel: 220, maxSpeed: 320, radius: 14,
+    rotSpeed: 3.5, accel: 380, reverseAccel: 220, maxSpeed: 380, radius: 14,
     maxShield: 100, maxHull: 100,
     cargoSlots: 8, cost: 0, sprite: 'ship',
     hardpoints: [
