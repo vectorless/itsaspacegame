@@ -604,26 +604,35 @@ export default class SpaceScene extends Phaser.Scene {
 
   triggerGameOver() {
     if (this.gameState.gameOver) return;
-    this.gameState.gameOver = true;
+    try {
+      this.gameState.gameOver = true;
 
-    const wreckItems = snapshotCargoToWreck(this.gameState);
-    if (wreckItems.length > 0) {
-      this.gameState.deathSites = this.gameState.deathSites || [];
-      this.gameState.deathSites.push({
-        x: this.controller.x,
-        y: this.controller.y,
-        level: this.gameState.level,
-        items: wreckItems
+      const wreckItems = snapshotCargoToWreck(this.gameState);
+      if (wreckItems.length > 0) {
+        this.gameState.deathSites = this.gameState.deathSites || [];
+        this.gameState.deathSites.push({
+          x: this.controller.x,
+          y: this.controller.y,
+          level: this.gameState.level,
+          items: wreckItems
+        });
+      }
+
+      resetAfterDeath(this.gameState);
+
+      this.cameras.main.flash(500, 255, 80, 80);
+      this.time.delayedCall(550, () => {
+        try {
+          this.scene.stop();
+          this.scene.start('StarbaseScene');
+        } catch (err) {
+          console.error('[SpaceScene gameOver transition]', err);
+        }
       });
+    } catch (err) {
+      console.error('[SpaceScene.triggerGameOver]', err);
+      this.gameState.gameOver = false;
     }
-
-    resetAfterDeath(this.gameState);
-
-    this.cameras.main.flash(500, 255, 80, 80);
-    this.time.delayedCall(550, () => {
-      this.scene.stop();
-      this.scene.start('StarbaseScene');
-    });
   }
 
   updateMiningLaser(fireHeld, dtSec) {

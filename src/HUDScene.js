@@ -97,7 +97,12 @@ export default class HUDScene extends Phaser.Scene {
 
   drawMinimap() {
     const space = this.scene.get('SpaceScene');
-    if (!space || !space.controller || !space.asteroidGroup) return;
+    const spaceLive = space && this.scene.isActive('SpaceScene')
+                      || (space && this.scene.isPaused('SpaceScene'));
+    if (!spaceLive || !space.controller || !space.asteroidGroup) {
+      this.minimapG.clear();
+      return;
+    }
 
     const g = this.minimapG;
     const ox = this.minimapX, oy = this.minimapY;
