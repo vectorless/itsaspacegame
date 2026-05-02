@@ -110,12 +110,12 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.lastFire = 0;
     this.lastBomb = 0;
 
+    this.makeHud();
+    this.outcomeShown = false;
+
     this.waveIdx = -1;
     this.waveActive = false;
     this.startNextWave();
-
-    this.makeHud();
-    this.outcomeShown = false;
   }
 
   drawBackground() {
