@@ -9,6 +9,41 @@ export function freshAmmo() {
   return { blaster: Infinity, missile: MISSILE.startAmmo };
 }
 
+export function autoEquipFromCargo(state) {
+  const ship = SHIPS[state.currentShipId];
+  const hp = {};
+  ship.hardpoints.forEach((h) => { hp[h.id] = null; });
+  ship.hardpoints.forEach((h, i) => {
+    if (i < state.cargo.weapons.length) hp[h.id] = state.cargo.weapons[i];
+  });
+  state.hardpoints = hp;
+}
+
+export function getEquippedWeapons(state) {
+  if (!state.hardpoints) return [];
+  const ship = SHIPS[state.currentShipId];
+  return ship.hardpoints.map((h) => state.hardpoints[h.id]).filter(Boolean);
+}
+
+export function ensureHardpointsValid(state) {
+  if (!state.hardpoints) {
+    autoEquipFromCargo(state);
+    return;
+  }
+  const ship = SHIPS[state.currentShipId];
+  const validIds = new Set(ship.hardpoints.map((h) => h.id));
+  for (const id of Object.keys(state.hardpoints)) {
+    if (!validIds.has(id)) delete state.hardpoints[id];
+  }
+  for (const h of ship.hardpoints) {
+    if (state.hardpoints[h.id] === undefined) state.hardpoints[h.id] = null;
+  }
+  for (const h of ship.hardpoints) {
+    const w = state.hardpoints[h.id];
+    if (w && !state.cargo.weapons.includes(w)) state.hardpoints[h.id] = null;
+  }
+}
+
 export function usedSlots(cargo) {
   return cargo.weapons.length + cargo.exotics.length + Math.ceil(cargo.scrap / CARGO.scrapPerSlot);
 }

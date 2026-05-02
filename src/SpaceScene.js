@@ -8,7 +8,7 @@ import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
 import { spawnAsteroid, damageAsteroid } from './asteroids.js';
 import { updateOre } from './ore.js';
-import { freshCargo, freshAmmo } from './cargo.js';
+import { freshCargo, freshAmmo, autoEquipFromCargo, ensureHardpointsValid, getEquippedWeapons } from './cargo.js';
 import { spawnEnemyAtRing, spawnElite, updateEnemies, damageEnemy } from './enemy.js';
 import { spawnDroneSwarm, updateDrones, damageDrone } from './drones.js';
 
@@ -147,7 +147,8 @@ export default class SpaceScene extends Phaser.Scene {
       this.physics.add.overlap(this.ship, st, this.onShipDockBase, null, this);
     }
 
-    this.keys = this.input.keyboard.addKeys('A,D,W,S,SPACE,E');
+    this.keys = this.input.keyboard.addKeys('A,D,W,S,F,SPACE,E');
+    ensureHardpointsValid(this.gameState);
     this.lastFireTime = 0;
     this.lastHitTime = -10000;
     this.dockCooldownUntil = this.time.now + LANDING.dockCooldownMs;
@@ -165,7 +166,7 @@ export default class SpaceScene extends Phaser.Scene {
   freshState() {
     const shipId = 'cruiser';
     const ship = SHIPS[shipId];
-    return {
+    const state = {
       currentShipId: shipId,
       currentWeapon: 'blaster',
       cargo: freshCargo(),
@@ -182,6 +183,8 @@ export default class SpaceScene extends Phaser.Scene {
       magnetLevel: 1,
       shieldLevel: 0
     };
+    autoEquipFromCargo(state);
+    return state;
   }
 
   applyShipBody(shipCfg) {
@@ -200,6 +203,8 @@ export default class SpaceScene extends Phaser.Scene {
     this.gameState.maxHull = cfg.maxHull;
     this.gameState.shield = Math.min(this.gameState.shield, this.gameState.maxShield);
     this.gameState.hull = Math.min(this.gameState.hull, this.gameState.maxHull);
+    autoEquipFromCargo(this.gameState);
+    this.gameState.currentWeapon = getEquippedWeapons(this.gameState)[0] ?? null;
   }
 
   spawnStation() {
@@ -269,6 +274,12 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.scene.isActive('ShopScene')) return;
     this.scene.pause();
     this.scene.launch('ShopScene');
+  }
+
+  openSchematic() {
+    if (this.scene.isActive('SchematicScene')) return;
+    this.scene.pause();
+    this.scene.launch('SchematicScene');
   }
 
   onShipDockBase(_ship, _base) {
@@ -561,17 +572,24 @@ export default class SpaceScene extends Phaser.Scene {
     this.starsNear.tilePositionX = this.cameras.main.scrollX * 0.5;
     this.starsNear.tilePositionY = this.cameras.main.scrollY * 0.5;
 
-    if (Phaser.Input.Keyboard.JustDown(k.E)) {
-      this.gameState.currentWeapon = nextWeaponId(
-        this.gameState.currentWeapon,
-        this.gameState.cargo.weapons
-      );
+    if (Phaser.Input.Keyboard.JustDown(k.F)) {
+      this.openSchematic();
+      return;
     }
 
-    const fireHeld = k.SPACE.isDown || pointer.leftButtonDown();
+    const equipped = getEquippedWeapons(this.gameState);
+    if (equipped.length > 0 && !equipped.includes(this.gameState.currentWeapon)) {
+      this.gameState.currentWeapon = equipped[0];
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(k.E)) {
+      this.gameState.currentWeapon = nextWeaponId(this.gameState.currentWeapon, equipped);
+    }
+
+    const fireHeld = (k.SPACE.isDown || pointer.leftButtonDown()) && this.gameState.currentWeapon;
     if (fireHeld) {
       const weapon = WEAPONS[this.gameState.currentWeapon];
-      if (time - this.lastFireTime >= weapon.cooldownMs) {
+      if (weapon && time - this.lastFireTime >= weapon.cooldownMs) {
         const ammo = this.gameState.ammo[this.gameState.currentWeapon];
         if (ammo === undefined || ammo > 0) {
           weapon.fire(this, this.controller);

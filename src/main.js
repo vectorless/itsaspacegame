@@ -6,6 +6,7 @@ import HUDScene from './HUDScene.js';
 import GameOverScene from './GameOverScene.js';
 import ShopScene from './ShopScene.js';
 import LandingScene from './LandingScene.js';
+import SchematicScene from './SchematicScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -18,7 +19,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false }
   },
-  scene: [BootScene, SpaceScene, HUDScene, GameOverScene, ShopScene, LandingScene]
+  scene: [BootScene, SpaceScene, HUDScene, GameOverScene, ShopScene, LandingScene, SchematicScene]
 };
 
 new Phaser.Game(config);

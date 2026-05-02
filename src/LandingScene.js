@@ -33,11 +33,12 @@ export default class LandingScene extends Phaser.Scene {
     }
     this.terrainPoints[this.terrainPoints.length - 1].x = w;
 
-    const padIdx = Math.floor(Math.random() * (this.terrainPoints.length - 4)) + 1;
+    const padIdx = Math.floor(Math.random() * (this.terrainPoints.length - 5)) + 1;
     const padY = this.terrainPoints[padIdx].y;
     this.terrainPoints[padIdx + 1].y = padY;
+    this.terrainPoints[padIdx + 2].y = padY;
     this.padX1 = this.terrainPoints[padIdx].x;
-    this.padX2 = this.terrainPoints[padIdx + 1].x;
+    this.padX2 = this.terrainPoints[padIdx + 2].x;
     this.padY = padY;
 
     this.terrainGfx = this.add.graphics();

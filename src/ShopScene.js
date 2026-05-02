@@ -84,7 +84,7 @@ export default class ShopScene extends Phaser.Scene {
     else if (this.currentTab === 'ships') this.renderShips();
   }
 
-  rowY(i) { return -180 + i * 38; }
+  rowY(i) { return 16 + i * 38; }
 
   addRow(i, labelText, actionText, actionColor, onClick) {
     const rect = this.add.rectangle(0, this.rowY(i), PANEL_W - 60, 32, 0x18283a, 0.95)

@@ -39,7 +39,7 @@ export default class HUDScene extends Phaser.Scene {
     this.deviceText = this.add.text(12, 236, '', { ...style, color: '#ff80ff' });
 
     this.helpText = this.add.text(12, this.scale.height - 24,
-      'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E weapon • dock star base',
+      'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E cycle • F loadout • dock star base',
       { ...style, color: '#5a7090', fontSize: '12px' });
 
     this.minimapX = this.scale.width - MINIMAP_SIZE - MINIMAP_PAD;
