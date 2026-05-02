@@ -88,7 +88,6 @@ export default class SpaceScene extends Phaser.Scene {
 
     this.spawnPortal();
     this.spawnBlackhole();
-    this.spawnMissionZones();
 
     const shipCfg = SHIPS[state.currentShipId];
     this.controller = new ShipController(WORLD_W / 2, WORLD_H / 2, shipCfg);
@@ -155,6 +154,7 @@ export default class SpaceScene extends Phaser.Scene {
     for (const st of this.stations) {
       this.physics.add.overlap(this.ship, st, this.onShipDockBase, null, this);
     }
+    this.spawnMissionZones();
 
     this.keys = this.input.keyboard.addKeys('A,D,W,S,F,SPACE,E');
     ensureHardpointsValid(this.gameState);
