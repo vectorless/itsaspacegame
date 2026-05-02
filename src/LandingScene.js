@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { LANDING, EXOTICS } from './constants.js';
+import { resetAfterDeath } from './state.js';
 
 export default class LandingScene extends Phaser.Scene {
   constructor() {
@@ -366,11 +367,26 @@ export default class LandingScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(21);
 
     const state = this.registry.get('gameState');
-    state.hull = Math.max(1, state.hull - LANDING.crashHullDamage);
+    state.hull = Math.max(0, state.hull - LANDING.crashHullDamage);
+    const fatal = state.hull <= 0;
+
+    if (fatal) {
+      this.add.text(w / 2, h / 2 + 50, 'Hull destroyed', {
+        fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#ff8888'
+      }).setOrigin(0.5).setDepth(21);
+    }
 
     this.time.delayedCall(1500, () => {
-      this.scene.stop();
-      this.scene.resume('SpaceScene');
+      if (fatal) {
+        resetAfterDeath(state);
+        if (this.scene.isPaused('SpaceScene') || this.scene.isActive('SpaceScene')) {
+          this.scene.stop('SpaceScene');
+        }
+        this.scene.start('StarbaseScene');
+      } else {
+        this.scene.stop();
+        this.scene.resume('SpaceScene');
+      }
     });
   }
 }
