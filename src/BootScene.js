@@ -11,6 +11,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('elite_ship', '/assets/enemies/elite.png');
     this.load.image('drone', '/assets/enemies/drone.png');
     this.load.image('station', '/assets/planets/starbase.png');
+    this.load.image('alien_signal', '/assets/aliens/alien_signal.png');
   }
 
   create() {

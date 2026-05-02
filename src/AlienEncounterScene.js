@@ -106,6 +106,17 @@ export default class AlienEncounterScene extends Phaser.Scene {
   drawAlien() {
     const cx = VIEW_W / 2;
     const cy = 220;
+    if (this.textures.exists('alien_signal')) {
+      const halo = this.add.graphics().setDepth(1);
+      halo.fillStyle(0xa080ff, 0.18);
+      halo.fillCircle(cx, cy, 150);
+      halo.fillStyle(0xa080ff, 0.10);
+      halo.fillCircle(cx, cy, 200);
+      const sprite = this.add.image(cx, cy, 'alien_signal').setDepth(2).setOrigin(0.5);
+      this.tweens.add({ targets: sprite, alpha: { from: 1, to: 0.85 }, duration: 1400, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: halo, alpha: { from: 1, to: 0.6 }, duration: 1800, yoyo: true, repeat: -1 });
+      return;
+    }
     const g = this.add.graphics().setDepth(2);
     g.fillStyle(0x66cc66, 0.4);
     g.fillCircle(cx, cy, 90);
