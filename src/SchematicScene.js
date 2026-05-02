@@ -25,6 +25,7 @@ export default class SchematicScene extends Phaser.Scene {
   constructor() { super('SchematicScene'); }
 
   create() {
+    this.scene.bringToTop();
     this.state = this.registry.get('gameState');
     ensureHardpointsValid(this.state);
 

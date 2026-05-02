@@ -30,6 +30,7 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   _create() {
+    this.scene.bringToTop();
     this.state = this.registry.get('gameState');
 
     const w = this.scale.width;
