@@ -54,6 +54,7 @@ export default class LandingScene extends Phaser.Scene {
     this.drawTerrain();
 
     this.lander = this.add.image(w / 2, 70, 'ship').setDepth(10);
+    this.landerRestOffset = Math.max(8, Math.floor(this.lander.displayHeight / 2) - 4);
     this.x = this.lander.x;
     this.y = this.lander.y;
     this.angle = -Math.PI / 2;
@@ -93,7 +94,7 @@ export default class LandingScene extends Phaser.Scene {
 
   setupTakeoff() {
     this.x = (this.padX1 + this.padX2) / 2;
-    this.y = this.padY - 12;
+    this.y = this.padY - (this.landerRestOffset ?? 12);
     this.vx = 0;
     this.vy = 0;
     this.angle = -Math.PI / 2;
@@ -198,13 +199,13 @@ export default class LandingScene extends Phaser.Scene {
     this.lander.setPosition(this.x, this.y);
 
     const terrainY = this.terrainYAt(this.x);
-    if (this.y >= terrainY - 10) {
-      this.y = terrainY - 10;
+    if (this.y >= terrainY - this.landerRestOffset) {
+      this.y = terrainY - this.landerRestOffset;
       this.lander.setPosition(this.x, this.y);
       this.checkLanding();
     }
 
-    const altitude = Math.max(0, terrainY - this.y - 10);
+    const altitude = Math.max(0, terrainY - this.y - this.landerRestOffset);
     this.altText.setText(`Alt:  ${Math.round(altitude)}`);
     this.vText.setText(`vx: ${this.vx.toFixed(1)}   vy: ${this.vy.toFixed(1)}`);
     this.fuelText.setText(`Fuel: ${Math.round(this.fuel)}`);
@@ -278,15 +279,15 @@ export default class LandingScene extends Phaser.Scene {
     else if (this.x > this.scale.width) { this.x = this.scale.width; this.vx = -this.vx * 0.3; }
 
     const terrainY = this.terrainYAt(this.x);
-    if (this.y >= terrainY - 10) {
-      this.y = terrainY - 10;
+    if (this.y >= terrainY - this.landerRestOffset) {
+      this.y = terrainY - this.landerRestOffset;
       if (this.vy > 0) this.vy = 0;
       this.vx *= 0.5;
     }
 
     this.lander.setPosition(this.x, this.y);
 
-    const altitude = Math.max(0, terrainY - this.y - 10);
+    const altitude = Math.max(0, terrainY - this.y - this.landerRestOffset);
     this.altText.setText(`Alt:  ${Math.round(altitude)}`);
     this.vText.setText(`vx: ${this.vx.toFixed(1)}   vy: ${this.vy.toFixed(1)}`);
     this.fuelText.setText(`Fuel: ${Math.round(this.fuel)}`);
