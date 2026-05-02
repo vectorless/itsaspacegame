@@ -208,13 +208,19 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.waveIdx++;
     if (this.waveIdx >= WAVES.length) {
       this.waveActive = false;
+      this.waveSpawnsRemaining = 0;
       this.checkWin();
       return;
     }
     this.waveActive = true;
     const w = WAVES[this.waveIdx];
+    this.waveSpawnsRemaining = w.count;
     for (let i = 0; i < w.count; i++) {
-      this.time.delayedCall(i * WAVE_SPAWN_INTERVAL_MS + WAVE_LEAD_DELAY_MS, () => this.spawnEnemy(w.pattern));
+      this.time.delayedCall(i * WAVE_SPAWN_INTERVAL_MS + WAVE_LEAD_DELAY_MS, () => {
+        if (this.outcomeShown) return;
+        this.spawnEnemy(w.pattern);
+        this.waveSpawnsRemaining--;
+      });
     }
     this.flashTitle(`WAVE ${this.waveIdx + 1} of ${WAVES.length}`);
   }
@@ -323,7 +329,7 @@ export default class AllianceBattleScene extends Phaser.Scene {
     const aliveTurrets = this.turretObjs.filter((t) => t.active).length;
     this.hudTargets.setText(`Ground targets: ${aliveTurrets} / ${TURRET.count}`);
 
-    if (this.waveActive && remaining === 0) {
+    if (this.waveActive && this.waveSpawnsRemaining === 0 && remaining === 0) {
       this.waveActive = false;
       this.time.delayedCall(900, () => this.startNextWave());
     }

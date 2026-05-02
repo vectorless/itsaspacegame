@@ -64,7 +64,8 @@ export default class LandingScene extends Phaser.Scene {
 
     this.fuel = LANDING.fuelStart;
 
-    this.keys = this.input.keyboard.addKeys('A,D,W');
+    this.keys = this.input.keyboard.addKeys('A,D,W,E');
+    this.canEnterStarbase = false;
 
     const style = { fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#cfe6ff' };
     this.altText = this.add.text(10, 10, '', style);
@@ -142,6 +143,12 @@ export default class LandingScene extends Phaser.Scene {
 
     if (this.mode === 'takeoff') {
       this.updateTakeoff(dt);
+      return;
+    }
+
+    if (this.canEnterStarbase && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+      this.canEnterStarbase = false;
+      this.scene.start('StarbaseScene');
       return;
     }
 
@@ -334,9 +341,7 @@ export default class LandingScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(21);
     this.tweens.add({ targets: prompt, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
 
-    this.input.keyboard.once('keydown-E', () => {
-      this.scene.start('StarbaseScene');
-    });
+    this.canEnterStarbase = true;
   }
 
   crash() {
