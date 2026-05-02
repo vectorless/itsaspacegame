@@ -153,6 +153,11 @@ export const REPAIR = {
   costPerBuy: 2
 };
 
+export const INSURANCE = {
+  baseRate: 0.05,
+  claimIncrement: 0.04
+};
+
 export const MAGNET = {
   maxLevel: 5,
   radiusByLevel: [0, 80, 150, 240, 360, 500],

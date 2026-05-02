@@ -1,6 +1,7 @@
-import { SHIPS, ENERGY, MISSILE } from './constants.js';
+import { SHIPS, ENERGY, MISSILE, INSURANCE } from './constants.js';
 import { autoEquipFromCargo } from './cargo.js';
 import { MISSIONS } from './missions.js';
+import { WEAPONS } from './weapons.js';
 
 export function freshGameState() {
   const shipId = 'cruiser';
@@ -28,7 +29,9 @@ export function freshGameState() {
     missions: { support_alliance: 'available', mine_ore: 'available' },
     missionFlags: {},
     missionProgress: {},
-    starbasePickups: []
+    starbasePickups: [],
+    insurance: { active: false, claimsCount: 0 },
+    lastInsurancePayout: 0
   };
   autoEquipFromCargo(state);
   return state;
@@ -43,13 +46,40 @@ export function ensureGameState(registry) {
   return state;
 }
 
+export function loadoutValue(state) {
+  let v = SHIPS[state.currentShipId]?.cost ?? 0;
+  for (const wid of state.cargo.weapons || []) {
+    v += WEAPONS[wid]?.cost ?? 0;
+  }
+  return v;
+}
+
+export function insurancePremium(state) {
+  const claims = state.insurance?.claimsCount ?? 0;
+  const rate = INSURANCE.baseRate + claims * INSURANCE.claimIncrement;
+  return Math.ceil(loadoutValue(state) * rate);
+}
+
+export function insuranceRate(state) {
+  const claims = state.insurance?.claimsCount ?? 0;
+  return INSURANCE.baseRate + claims * INSURANCE.claimIncrement;
+}
+
 export function resetAfterDeath(state) {
+  let payout = 0;
+  if (state.insurance && state.insurance.active) {
+    payout = loadoutValue(state);
+    state.insurance.active = false;
+    state.insurance.claimsCount = (state.insurance.claimsCount ?? 0) + 1;
+  }
+
+  state.currentShipId = 'cruiser';
   state.cargo.weapons = ['blaster', 'mining_laser'];
   state.cargo.exotics = [];
   state.cargo.scrap = 0;
   state.cargo.ore = 0;
   state.ammo = { blaster: Infinity, mining_laser: Infinity };
-  const ship = SHIPS[state.currentShipId];
+  const ship = SHIPS['cruiser'];
   state.shield = ship.maxShield + (state.shieldLevel ?? 0) * 25;
   state.maxShield = ship.maxShield + (state.shieldLevel ?? 0) * 25;
   state.hull = ship.maxHull;
@@ -59,6 +89,10 @@ export function resetAfterDeath(state) {
   state.charging = false;
   state.gameOver = false;
   state.currentWeapon = 'blaster';
+
+  state.credits += payout;
+  state.lastInsurancePayout = payout;
+
   autoEquipFromCargo(state);
 }
 

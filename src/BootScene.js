@@ -475,6 +475,24 @@ export default class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
+    // Insurance terminal (shield with check)
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x102030, 1);
+      g.fillRect(2, 2, t - 4, t - 4);
+      g.fillStyle(0x66ddff, 1);
+      g.fillRect(7, 4, t - 14, 12);
+      g.fillTriangle(7, 16, t - 7, 16, t / 2, t - 4);
+      g.lineStyle(2, 0x0a1830, 1);
+      g.beginPath();
+      g.moveTo(8, 10);
+      g.lineTo(11, 13);
+      g.lineTo(t - 8, 7);
+      g.strokePath();
+      g.generateTexture('prop_insurance', t, t);
+      g.destroy();
+    }
+
     // Mission terminal (clipboard / datapad)
     {
       const g = this.add.graphics();

@@ -7,7 +7,7 @@ const PROP_SPRITES = {
   engineering: 'prop_engineering',
   airlock: 'prop_airlock',
   repair: 'prop_repair',
-  checkpoint: 'prop_checkpoint',
+  insurance: 'prop_insurance',
   mission: 'prop_mission'
 };
 
@@ -38,6 +38,17 @@ export default class StarbaseScene extends Phaser.Scene {
       y: this.level.spawn.y * this.tile + this.tile / 2,
       gravity: this.level.spawn.gravity === 'up' ? -1 : 1
     };
+
+    const state = this.registry.get('gameState');
+    if (state && state.lastInsurancePayout > 0) {
+      const cx = this.scale.width / 2;
+      const txt = this.add.text(cx, 80,
+        `INSURANCE PAID OUT\n+${state.lastInsurancePayout.toLocaleString()} cr`,
+        { fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#88ffaa', align: 'center', backgroundColor: '#001020', padding: { x: 12, y: 8 } }
+      ).setOrigin(0.5).setDepth(50);
+      this.tweens.add({ targets: txt, alpha: 0, y: 60, duration: 5000, ease: 'Cubic.easeIn', onComplete: () => txt.destroy() });
+      state.lastInsurancePayout = 0;
+    }
 
     this.events.on('shutdown', () => this.input.setDefaultCursor('none'));
   }
@@ -229,13 +240,9 @@ export default class StarbaseScene extends Phaser.Scene {
         state.hull = state.maxHull;
         this.cameras.main.flash(200, 80, 255, 120);
       }
-    } else if (prop.type === 'checkpoint') {
-      this.lastCheckpoint = {
-        x: prop.px,
-        y: prop.py,
-        gravity: this.controller.gravitySign
-      };
-      this.cameras.main.flash(160, 200, 200, 80);
+    } else if (prop.type === 'insurance') {
+      this.scene.pause();
+      this.scene.launch('InsuranceScene', { from: 'StarbaseScene' });
     }
   }
 
@@ -287,8 +294,9 @@ export default class StarbaseScene extends Phaser.Scene {
         : prop.type === 'mission' ? 'open mission board'
         : prop.type === 'airlock' ? 'leave starbase'
         : prop.type === 'repair' ? 'repair hull'
-        : 'set checkpoint';
-      this.promptText.setText(`E to ${verb}`);
+        : prop.type === 'insurance' ? 'manage insurance'
+        : '';
+      this.promptText.setText(verb ? `E to ${verb}` : '');
       if (Phaser.Input.Keyboard.JustDown(k.E)) {
         this.interact(prop);
       }
