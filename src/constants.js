@@ -72,6 +72,22 @@ export const STARBASE_PADS = {
   byLevel: [1, 1, 2, 2, 3, 3, 3]
 };
 
+export const MARKETPLACE = [
+  { id: 'missile',       kind: 'weapon',     basePrice: 25 },
+  { id: 'spread',        kind: 'weapon',     basePrice: 5 },
+  { id: 'homing',        kind: 'weapon',     basePrice: 15 },
+  { id: 'railgun',       kind: 'weapon',     basePrice: 30 },
+  { id: 'crystalline',   kind: 'exotic',     basePrice: 50 },
+  { id: 'blackbox',      kind: 'exotic',     basePrice: 100 },
+  { id: 'datacore',      kind: 'exotic',     basePrice: 200 },
+  { id: 'portal_device', kind: 'consumable', basePrice: 20 }
+];
+
+export const MARKET_PRICE_VARIANCE = {
+  min: 0.7,
+  max: 1.4
+};
+
 export const DAMAGE = {
   asteroidMin: 5,
   asteroidMax: 50,

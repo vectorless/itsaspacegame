@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
   VIEW_W, VIEW_H, WORLD_W, WORLD_H,
   ASTEROID_COUNT, MISSILE, BLASTER, RAILGUN, HOMING,
-  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, ENERGY, MINING_LASER
+  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, ENERGY, MINING_LASER, MARKETPLACE, MARKET_PRICE_VARIANCE
 } from './constants.js';
 import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
@@ -202,6 +202,13 @@ export default class SpaceScene extends Phaser.Scene {
       y = Phaser.Math.Between(400, WORLD_H - 400);
     } while (Phaser.Math.Distance.Between(x, y, cx, cy) < STATION.minDistFromCenter);
     const s = this.physics.add.staticImage(x, y, 'station').setDepth(2);
+    s.stationName = `Sector-${this.gameState.level}-Alpha`;
+    s.priceModifiers = {};
+    for (const item of MARKETPLACE) {
+      s.priceModifiers[item.id] = Math.round(
+        (MARKET_PRICE_VARIANCE.min + Math.random() * (MARKET_PRICE_VARIANCE.max - MARKET_PRICE_VARIANCE.min)) * 100
+      ) / 100;
+    }
     this.stations.push(s);
 
     if (!this.stationInventory) {

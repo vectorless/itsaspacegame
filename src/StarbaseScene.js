@@ -78,7 +78,8 @@ export default class StarbaseScene extends Phaser.Scene {
       const px = p.x * this.tile + this.tile / 2;
       const py = p.y * this.tile + this.tile / 2;
       const img = this.add.image(px, py, sprite).setDepth(2);
-      const label = this.add.text(px, py - this.tile, p.type.toUpperCase(), {
+      const propLabel = p.type === 'engineering' ? 'SHOP' : p.type.toUpperCase();
+      const label = this.add.text(px, py - this.tile, propLabel, {
         fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: '#88aacc'
       }).setOrigin(0.5).setDepth(2);
       this.props.push({ ...p, img, label, px, py });
@@ -290,7 +291,7 @@ export default class StarbaseScene extends Phaser.Scene {
 
     const prop = this.nearestProp();
     if (prop) {
-      const verb = prop.type === 'engineering' ? 'open engineering'
+      const verb = prop.type === 'engineering' ? 'open the shop'
         : prop.type === 'mission' ? 'open mission board'
         : prop.type === 'airlock' ? 'leave starbase'
         : prop.type === 'repair' ? 'repair hull'

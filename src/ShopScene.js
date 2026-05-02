@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { WEAPONS, STARTING_AMMO } from './weapons.js';
-import { REPAIR, MAGNET, SHIELD_UPGRADE, SHIPS, EXOTICS, DROPS } from './constants.js';
+import { REPAIR, MAGNET, SHIELD_UPGRADE, SHIPS, EXOTICS, DROPS, MARKETPLACE } from './constants.js';
 import { sellItem, autoSellOverflow, usedSlots, maxSlots, freeSlots, addItem } from './cargo.js';
 
 const PANEL_W = 720;
@@ -40,7 +40,7 @@ export default class ShopScene extends Phaser.Scene {
     this.add.rectangle(w / 2, h / 2, PANEL_W, PANEL_H, 0x102030, 0.97)
       .setStrokeStyle(2, 0x6cd0ff);
 
-    this.add.text(w / 2, h / 2 - PANEL_H / 2 + 22, 'ENGINEERING BAY', {
+    this.add.text(w / 2, h / 2 - PANEL_H / 2 + 22, 'SHOP', {
       fontFamily: 'system-ui, sans-serif', fontSize: '24px', color: '#cfe6ff'
     }).setOrigin(0.5);
 
@@ -48,12 +48,12 @@ export default class ShopScene extends Phaser.Scene {
       fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#ffe28a'
     }).setOrigin(0.5);
 
-    this.tabs = ['weapons', 'upgrades', 'ships'];
-    this.currentTab = 'weapons';
+    this.tabs = ['marketplace', 'weapons', 'upgrades', 'ships'];
+    this.currentTab = 'marketplace';
     this.tabButtons = [];
     const tabY = h / 2 - PANEL_H / 2 + 86;
     this.tabs.forEach((t, i) => {
-      const x = w / 2 - 160 + i * 160;
+      const x = w / 2 - 240 + i * 160;
       const btn = this.add.rectangle(x, tabY, 140, 28, 0x18283a, 0.95)
         .setStrokeStyle(1, 0x3aa1ff, 0.5).setInteractive({ useHandCursor: true });
       const txt = this.add.text(x, tabY, t.toUpperCase(), {
@@ -99,7 +99,8 @@ export default class ShopScene extends Phaser.Scene {
 
     this.bodyContainer.removeAll(true);
 
-    if (this.currentTab === 'weapons') this.renderWeapons();
+    if (this.currentTab === 'marketplace') this.renderMarketplace();
+    else if (this.currentTab === 'weapons') this.renderWeapons();
     else if (this.currentTab === 'upgrades') this.renderUpgrades();
     else if (this.currentTab === 'ships') this.renderShips();
   }
@@ -252,19 +253,6 @@ export default class ShopScene extends Phaser.Scene {
           } : null);
       }
     }
-    // Portal device
-    if (this.state.hasPortalDevice) {
-      this.addRow(i++, 'Portal Device — already in cargo', 'OWNED', '#5a7090', null);
-    } else {
-      const can = this.state.credits >= 20;
-      this.addRow(i++, 'Portal Device — opens the wormhole', '20 credits',
-        can ? '#a8dcff' : '#7a3a3a',
-        can ? () => {
-          this.state.credits -= 20;
-          this.state.hasPortalDevice = true;
-          this.refresh();
-        } : null);
-    }
     // Hull repair
     {
       const full = this.state.hull >= this.state.maxHull;
@@ -278,6 +266,123 @@ export default class ShopScene extends Phaser.Scene {
           this.state.hull = Math.min(this.state.maxHull, this.state.hull + REPAIR.hpPerBuy);
           this.refresh();
         } : null);
+    }
+  }
+
+  getStation() {
+    const space = this.scene.get('SpaceScene');
+    return space?.stations?.[0] ?? null;
+  }
+
+  marketPrice(itemId, basePrice) {
+    const station = this.getStation();
+    const mod = station?.priceModifiers?.[itemId] ?? 1;
+    return Math.max(1, Math.round(basePrice * mod));
+  }
+
+  renderMarketplace() {
+    const station = this.getStation();
+    const stationName = station?.stationName ?? 'this station';
+    let i = 0;
+
+    this.addRow(i++, `Market — ${stationName}  (prices vary by station)`, '', '#88aacc', null);
+
+    for (const item of MARKETPLACE) {
+      const price = this.marketPrice(item.id, item.basePrice);
+      const mod = station?.priceModifiers?.[item.id] ?? 1;
+      const modPct = Math.round((mod - 1) * 100);
+      const modTag = mod === 1 ? '' : (mod > 1 ? ` +${modPct}%` : ` ${modPct}%`);
+
+      let label = '', actionText = '', color = '#a8dcff', fn = null;
+
+      if (item.kind === 'weapon') {
+        const w = WEAPONS[item.id];
+        const owned = this.state.cargo.weapons.includes(item.id);
+        const room = freeSlots(this.state) >= 1;
+        label = `${w.name} (weapon)  base ${item.basePrice}${modTag}`;
+        if (owned) {
+          actionText = 'OWNED'; color = '#5a7090';
+        } else if (this.state.credits < price) {
+          actionText = `Buy ${price} cr`; color = '#7a3a3a';
+        } else if (!room) {
+          actionText = `Buy ${price} cr (no cargo)`; color = '#7a3a3a';
+        } else {
+          actionText = `Buy ${price} cr`;
+          fn = () => {
+            if (this.state.credits < price) return;
+            if (!addItem(this.state, 'weapon', item.id)) return;
+            this.state.credits -= price;
+            this.refresh();
+          };
+        }
+      } else if (item.kind === 'exotic') {
+        const e = EXOTICS[item.id];
+        const inCargo = (this.state.cargo.exotics ?? []).filter((x) => x === item.id).length;
+        label = `${e.name} (exotic)  base ${item.basePrice}${modTag}    in cargo: ${inCargo}`;
+        const room = freeSlots(this.state) >= 1;
+        if (this.state.credits < price) {
+          actionText = `Buy ${price} cr`; color = '#7a3a3a';
+        } else if (!room) {
+          actionText = `Buy ${price} cr (no cargo)`; color = '#7a3a3a';
+        } else {
+          actionText = `Buy ${price} cr`;
+          fn = () => {
+            if (this.state.credits < price) return;
+            if (!addItem(this.state, 'exotic', item.id)) return;
+            this.state.credits -= price;
+            this.refresh();
+          };
+        }
+      } else if (item.kind === 'consumable' && item.id === 'portal_device') {
+        label = `Portal Device (consumable)  base ${item.basePrice}${modTag}`;
+        if (this.state.hasPortalDevice) {
+          actionText = 'OWNED'; color = '#5a7090';
+        } else if (this.state.credits < price) {
+          actionText = `Buy ${price} cr`; color = '#7a3a3a';
+        } else {
+          actionText = `Buy ${price} cr`;
+          fn = () => {
+            if (this.state.credits < price) return;
+            this.state.credits -= price;
+            this.state.hasPortalDevice = true;
+            this.refresh();
+          };
+        }
+      }
+
+      this.addRow(i++, label, actionText, color, fn);
+    }
+
+    // SELL section
+    const sellable = [];
+    for (const wid of this.state.cargo.weapons) {
+      if (wid === 'blaster' || wid === 'mining_laser') continue;
+      const item = MARKETPLACE.find((m) => m.id === wid);
+      if (item) sellable.push({ kind: 'weapon', id: wid, item });
+    }
+    const exoticCounts = {};
+    for (const id of this.state.cargo.exotics ?? []) {
+      exoticCounts[id] = (exoticCounts[id] ?? 0) + 1;
+    }
+    for (const [id, count] of Object.entries(exoticCounts)) {
+      const item = MARKETPLACE.find((m) => m.id === id);
+      if (item) sellable.push({ kind: 'exotic', id, item, count });
+    }
+
+    if (sellable.length > 0) {
+      this.addRow(i++, '— SELL FROM CARGO —', '', '#88aacc', null);
+      for (const s of sellable) {
+        const price = this.marketPrice(s.id, s.item.basePrice);
+        const sellPrice = s.kind === 'weapon' ? Math.floor(price * DROPS.weaponSellRatio) : price;
+        const label = s.kind === 'weapon'
+          ? `${WEAPONS[s.id].name} (weapon)`
+          : `${EXOTICS[s.id].name} (exotic) × ${s.count}`;
+        this.addRow(i++, label, `Sell ${sellPrice} cr`, '#88ffaa', () => {
+          if (s.kind === 'weapon') sellItem(this.state, 'weapon', s.id);
+          else sellItem(this.state, 'exotic', this.state.cargo.exotics.indexOf(s.id));
+          this.refresh();
+        });
+      }
     }
   }
 
