@@ -28,16 +28,23 @@ export default class HUDScene extends Phaser.Scene {
     this.hullBar = this.add.rectangle(13, 63, BAR_W - 2, BAR_H - 2, COLORS.hullBar, 0.95)
       .setOrigin(0, 0);
 
-    this.shipText = this.add.text(12, 80, '', { ...style, color: '#a0c0ff' });
-    this.weaponText = this.add.text(12, 98, '', style);
-    this.ammoText = this.add.text(12, 116, '', style);
-    this.speedText = this.add.text(12, 134, '', style);
-    this.oreText = this.add.text(12, 156, '', { ...style, color: '#ffe28a', fontSize: '16px' });
-    this.rawOreText = this.add.text(12, 178, '', { ...style, color: '#ffd060' });
-    this.scrapText = this.add.text(12, 196, '', { ...style, color: '#b8b8c8' });
-    this.cargoText = this.add.text(12, 214, '', { ...style, color: '#cfe6ff' });
-    this.levelText = this.add.text(12, 236, '', { ...style, color: '#a0c0ff' });
-    this.deviceText = this.add.text(12, 254, '', { ...style, color: '#ff80ff' });
+    this.powerLabel = this.add.text(12, 78, 'POWER', { ...style, color: '#88ffaa' });
+    this.powerBarBg = this.add.rectangle(12, 96, BAR_W, BAR_H, 0x102818, 0.85)
+      .setOrigin(0, 0).setStrokeStyle(1, 0x3a7a4a);
+    this.powerBar = this.add.rectangle(13, 97, BAR_W - 2, BAR_H - 2, 0x66ff88, 0.95)
+      .setOrigin(0, 0);
+    this.chargingText = this.add.text(BAR_W + 20, 78, '', { ...style, color: '#a080ff', fontSize: '12px' });
+
+    this.shipText = this.add.text(12, 114, '', { ...style, color: '#a0c0ff' });
+    this.weaponText = this.add.text(12, 132, '', style);
+    this.ammoText = this.add.text(12, 150, '', style);
+    this.speedText = this.add.text(12, 168, '', style);
+    this.oreText = this.add.text(12, 190, '', { ...style, color: '#ffe28a', fontSize: '16px' });
+    this.rawOreText = this.add.text(12, 212, '', { ...style, color: '#ffd060' });
+    this.scrapText = this.add.text(12, 230, '', { ...style, color: '#b8b8c8' });
+    this.cargoText = this.add.text(12, 248, '', { ...style, color: '#cfe6ff' });
+    this.levelText = this.add.text(12, 270, '', { ...style, color: '#a0c0ff' });
+    this.deviceText = this.add.text(12, 288, '', { ...style, color: '#ff80ff' });
 
     this.helpText = this.add.text(12, this.scale.height - 24,
       'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E cycle • F loadout • dock star base',
@@ -68,6 +75,11 @@ export default class HUDScene extends Phaser.Scene {
 
     this.shieldLabel.setText(`SHIELD  ${Math.round(state.shield)} / ${state.maxShield}`);
     this.hullLabel.setText(`HULL  ${Math.round(state.hull)} / ${state.maxHull}`);
+
+    const pFrac = Phaser.Math.Clamp((state.power ?? 0) / (state.maxPower ?? 100), 0, 1);
+    this.powerBar.width = (BAR_W - 2) * pFrac;
+    this.powerLabel.setText(`POWER  ${Math.round(state.power ?? 0)} / ${state.maxPower ?? 100}`);
+    this.chargingText.setText(state.charging ? '◆ CHARGING' : '');
 
     this.shipText.setText(`Ship:   ${ship.name}`);
     this.weaponText.setText(`Weapon: ${weapon ? weapon.name : '—'}`);

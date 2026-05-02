@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
   VIEW_W, VIEW_H, WORLD_W, WORLD_H,
   ASTEROID_COUNT, MISSILE, BLASTER, RAILGUN, HOMING,
-  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE
+  STATION, SHIP, SHIPS, DAMAGE, ENEMY, ELITE, DRONE, PORTAL, LEVEL, COLORS, LANDING, STARBASE_PADS, BLACKHOLE, POWER
 } from './constants.js';
 import ShipController from './ShipController.js';
 import { WEAPONS, nextWeaponId } from './weapons.js';
@@ -183,7 +183,10 @@ export default class SpaceScene extends Phaser.Scene {
       level: 1,
       hasPortalDevice: false,
       magnetLevel: 1,
-      shieldLevel: 0
+      shieldLevel: 0,
+      power: POWER.max,
+      maxPower: POWER.max,
+      charging: false
     };
     autoEquipFromCargo(state);
     return state;
@@ -279,6 +282,20 @@ export default class SpaceScene extends Phaser.Scene {
     const grR = BLACKHOLE.gravityRadius;
     const grR2 = grR * grR;
     const ehR2 = BLACKHOLE.eventHorizonRadius * BLACKHOLE.eventHorizonRadius;
+
+    const sdx = this.controller.x - bx;
+    const sdy = this.controller.y - by;
+    const sdist = Math.hypot(sdx, sdy);
+    if (sdist >= BLACKHOLE.chargeBandMin && sdist <= BLACKHOLE.chargeBandMax
+        && this.gameState.power < this.gameState.maxPower) {
+      this.gameState.power = Math.min(
+        this.gameState.maxPower,
+        this.gameState.power + POWER.chargePerSec * dtSec
+      );
+      this.gameState.charging = true;
+    } else {
+      this.gameState.charging = false;
+    }
 
     const pull = (obj, getVel, setVel) => {
       const dx = bx - obj.x;
@@ -548,10 +565,11 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.gameState.gameOver) return;
     if (this.time.now - this.lastHitTime < SHIP.shieldRegenDelayMs) return;
     if (this.gameState.shield >= this.gameState.maxShield) return;
-    this.gameState.shield = Math.min(
-      this.gameState.maxShield,
-      this.gameState.shield + SHIP.shieldRegenPerSec * dtSec
-    );
+    if (this.gameState.power <= 0) return;
+    const want = SHIP.shieldRegenPerSec * dtSec;
+    const delta = Math.min(want, this.gameState.maxShield - this.gameState.shield, this.gameState.power / POWER.shieldRegenCost);
+    this.gameState.shield += delta;
+    this.gameState.power = Math.max(0, this.gameState.power - delta * POWER.shieldRegenCost);
   }
 
   updatePortal() {

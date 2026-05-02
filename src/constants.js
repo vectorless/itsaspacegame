@@ -285,7 +285,16 @@ export const BLACKHOLE = {
   eventHorizonRadius: 30,
   hullDamageOnEventHorizon: 60,
   minDistFromCenter: 1500,
-  minDistFromOther: 1200
+  minDistFromOther: 1200,
+  chargeBandMin: 90,
+  chargeBandMax: 320
+};
+
+export const POWER = {
+  max: 100,
+  shieldRegenCost: 1,
+  chargePerSec: 35,
+  laserCostPerSec: 30
 };
 
 export const LEVEL = {
