@@ -155,6 +155,7 @@ export default class SpaceScene extends Phaser.Scene {
 
     this.events.on('resume', () => {
       this.dockCooldownUntil = this.time.now + LANDING.dockCooldownMs;
+      this.repositionShipClearOfStation();
     });
 
     this.swarmHadDrones = false;
@@ -274,6 +275,27 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.scene.isActive('ShopScene')) return;
     this.scene.pause();
     this.scene.launch('ShopScene');
+  }
+
+  repositionShipClearOfStation() {
+    if (!this.controller || !this.stations) return;
+    const safeRadius = 160;
+    for (const s of this.stations) {
+      const dx = this.controller.x - s.x;
+      const dy = this.controller.y - s.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < safeRadius) {
+        const ang = dist > 0.001
+          ? Math.atan2(dy, dx)
+          : Math.random() * Math.PI * 2;
+        this.controller.x = s.x + Math.cos(ang) * safeRadius;
+        this.controller.y = s.y + Math.sin(ang) * safeRadius;
+        this.controller.vx = Math.cos(ang) * 40;
+        this.controller.vy = Math.sin(ang) * 40;
+        if (this.ship) this.ship.setPosition(this.controller.x, this.controller.y);
+        break;
+      }
+    }
   }
 
   openSchematic() {
