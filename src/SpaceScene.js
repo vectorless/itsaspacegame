@@ -166,6 +166,7 @@ export default class SpaceScene extends Phaser.Scene {
       this.dockCooldownUntil = this.time.now + LANDING.dockCooldownMs;
       this.repositionShipClearOfStation();
       this.refreshMissionZones();
+      this.spawnMissionZones();
     });
 
     this.swarmHadDrones = false;
@@ -242,12 +243,14 @@ export default class SpaceScene extends Phaser.Scene {
   }
 
   spawnMissionZones() {
-    this.missionZones = [];
+    if (!this.missionZones) this.missionZones = [];
     if (!this.gameState.missions) return;
+    const existing = new Set(this.missionZones.filter((z) => z && z.active).map((z) => z.missionId));
     const cx = WORLD_W / 2, cy = WORLD_H / 2;
     for (const id of Object.keys(this.gameState.missions)) {
       if (this.gameState.missions[id] !== 'accepted') continue;
       if (!MISSIONS[id]?.sceneKey) continue;
+      if (existing.has(id)) continue;
       let x, y, tries = 0;
       do {
         x = Phaser.Math.Between(500, WORLD_W - 500);

@@ -10,6 +10,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('ship', '/assets/ships/cruiser.png');
     this.load.image('elite_ship', '/assets/enemies/elite.png');
     this.load.image('drone', '/assets/enemies/drone.png');
+    this.load.image('station', '/assets/planets/starbase.png');
   }
 
   create() {
@@ -24,7 +25,7 @@ export default class BootScene extends Phaser.Scene {
     this.makeAsteroidTexture('asteroid_b', 56, 11);
     this.makeAsteroidTexture('asteroid_c', 56, 7);
     this.makeOreTexture();
-    this.makeStationTexture();
+    if (!this.textures.exists('station')) this.makeStationTexture();
     this.makeEnemyTexture();
     this.makeEnemyBulletTexture();
     if (!this.textures.exists('elite_ship')) this.makeEliteTexture();
