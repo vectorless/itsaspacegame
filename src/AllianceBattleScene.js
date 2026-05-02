@@ -39,9 +39,12 @@ const TURRET = {
 };
 
 const WAVES = [
-  { count: 5, pattern: 'straight' },
-  { count: 7, pattern: 'sine' },
-  { count: 10, pattern: 'mixed' }
+  { count: 5,  pattern: 'straight' },
+  { count: 7,  pattern: 'sine' },
+  { count: 8,  pattern: 'mixed' },
+  { count: 10, pattern: 'sine' },
+  { count: 12, pattern: 'mixed' },
+  { count: 14, pattern: 'mixed' }
 ];
 
 class SimpleProjectile extends Phaser.Physics.Arcade.Sprite {
@@ -386,9 +389,8 @@ export default class AllianceBattleScene extends Phaser.Scene {
 
   checkWin() {
     if (this.outcomeShown) return;
-    const aliveTurrets = this.turretObjs.filter((t) => t.active).length;
     const wavesDone = this.waveIdx >= WAVES.length - 1 && !this.waveActive && this.enemies.countActive(true) === 0;
-    if (wavesDone && aliveTurrets === 0) this.win();
+    if (wavesDone) this.win();
   }
 
   win() {

@@ -165,6 +165,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.events.on('resume', () => {
       this.dockCooldownUntil = this.time.now + LANDING.dockCooldownMs;
       this.repositionShipClearOfStation();
+      this.refreshMissionZones();
     });
 
     this.swarmHadDrones = false;
@@ -268,6 +269,22 @@ export default class SpaceScene extends Phaser.Scene {
 
       this.physics.add.overlap(this.ship, zone, this.onShipEnterMission, null, this);
     }
+  }
+
+  refreshMissionZones() {
+    if (!this.missionZones) return;
+    const remaining = [];
+    for (const z of this.missionZones) {
+      const status = this.gameState.missions?.[z.missionId];
+      if (status !== 'accepted') {
+        if (z.label) z.label.destroy();
+        if (z.body) z.disableBody(true, true);
+        z.destroy();
+      } else {
+        remaining.push(z);
+      }
+    }
+    this.missionZones = remaining;
   }
 
   onShipEnterMission(_ship, zone) {
