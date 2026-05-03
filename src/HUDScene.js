@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { WEAPONS } from './weapons.js';
+import { WEAPONS, effectiveStats } from './weapons.js';
 import { WORLD_W, WORLD_H, COLORS, SHIPS } from './constants.js';
 import { MISSIONS } from './missions.js';
 import { usedSlots, maxSlots } from './cargo.js';
@@ -8,6 +8,29 @@ const MINIMAP_SIZE = 160;
 const MINIMAP_PAD = 12;
 const BAR_W = 180;
 const BAR_H = 10;
+
+const SLOT_COUNT = 5;
+const SLOT_SIZE = 56;
+const SLOT_GAP = 6;
+
+const SLOT_COLOR_EMPTY = 0x222a36;
+const SLOT_COLOR_INACTIVE = 0x2a3f55;
+const SLOT_COLOR_ACTIVE = 0x1f5a3a;
+const SLOT_COLOR_NO_AMMO = 0x5a1f1f;
+const SLOT_STROKE_EMPTY = 0x445566;
+const SLOT_STROKE_INACTIVE = 0x88aacc;
+const SLOT_STROKE_ACTIVE = 0x88ffaa;
+const SLOT_STROKE_NO_AMMO = 0xff6060;
+
+function weaponTint(id) {
+  if (id === 'blaster') return '#fff0a0';
+  if (id === 'spread') return '#88ffaa';
+  if (id === 'missile') return '#ff8050';
+  if (id === 'homing') return '#66ddff';
+  if (id === 'railgun') return '#c8f0ff';
+  if (id === 'mining_laser') return '#66ff88';
+  return '#ffffff';
+}
 
 export default class HUDScene extends Phaser.Scene {
   constructor() { super('HUDScene'); }
@@ -37,18 +60,16 @@ export default class HUDScene extends Phaser.Scene {
     this.chargingText = this.add.text(BAR_W + 20, 78, '', { ...style, color: '#a080ff', fontSize: '12px' });
 
     this.shipText = this.add.text(12, 114, '', { ...style, color: '#a0c0ff' });
-    this.weaponText = this.add.text(12, 132, '', style);
-    this.ammoText = this.add.text(12, 150, '', style);
-    this.speedText = this.add.text(12, 168, '', style);
-    this.oreText = this.add.text(12, 190, '', { ...style, color: '#ffe28a', fontSize: '16px' });
-    this.rawOreText = this.add.text(12, 212, '', { ...style, color: '#ffd060' });
-    this.scrapText = this.add.text(12, 230, '', { ...style, color: '#b8b8c8' });
-    this.cargoText = this.add.text(12, 248, '', { ...style, color: '#cfe6ff' });
-    this.levelText = this.add.text(12, 270, '', { ...style, color: '#a0c0ff' });
-    this.deviceText = this.add.text(12, 288, '', { ...style, color: '#ff80ff' });
+    this.speedText = this.add.text(12, 132, '', style);
+    this.oreText = this.add.text(12, 154, '', { ...style, color: '#ffe28a', fontSize: '16px' });
+    this.rawOreText = this.add.text(12, 176, '', { ...style, color: '#ffd060' });
+    this.scrapText = this.add.text(12, 194, '', { ...style, color: '#b8b8c8' });
+    this.cargoText = this.add.text(12, 212, '', { ...style, color: '#cfe6ff' });
+    this.levelText = this.add.text(12, 234, '', { ...style, color: '#a0c0ff' });
+    this.deviceText = this.add.text(12, 252, '', { ...style, color: '#ff80ff' });
 
     this.helpText = this.add.text(12, this.scale.height - 24,
-      'A/D rotate • W/S thrust • Mouse aim • Click/Space fire • E cycle • F loadout • dock star base',
+      'A/D rotate • W/S thrust • 1-5 toggle slots • Q auto-aim • F loadout • mouse aim (manual)',
       { ...style, color: '#5a7090', fontSize: '12px' });
 
     this.minimapX = this.scale.width - MINIMAP_SIZE - MINIMAP_PAD;
@@ -59,13 +80,92 @@ export default class HUDScene extends Phaser.Scene {
     ).setOrigin(0, 0).setStrokeStyle(1, 0x3aa1ff, 0.7);
 
     this.minimapG = this.add.graphics();
+
+    this.buildSlotBar();
+  }
+
+  buildSlotBar() {
+    const totalW = SLOT_COUNT * SLOT_SIZE + (SLOT_COUNT - 1) * SLOT_GAP;
+    const startX = (this.scale.width - totalW) / 2 + SLOT_SIZE / 2;
+    const y = 8 + SLOT_SIZE / 2;
+
+    this.slotCells = [];
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const cx = startX + i * (SLOT_SIZE + SLOT_GAP);
+      const bg = this.add.rectangle(cx, y, SLOT_SIZE, SLOT_SIZE, SLOT_COLOR_EMPTY, 0.92)
+        .setStrokeStyle(2, SLOT_STROKE_EMPTY, 0.9).setDepth(50);
+      const numTxt = this.add.text(cx - SLOT_SIZE / 2 + 4, y - SLOT_SIZE / 2 + 2, `${i + 1}`, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#cfe6ff'
+      }).setDepth(51);
+      const nameTxt = this.add.text(cx, y, '—', {
+        fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#88aacc'
+      }).setOrigin(0.5).setDepth(51);
+      const ammoTxt = this.add.text(cx + SLOT_SIZE / 2 - 4, y + SLOT_SIZE / 2 - 2, '', {
+        fontFamily: 'system-ui, sans-serif', fontSize: '10px', color: '#cfe6ff'
+      }).setOrigin(1, 1).setDepth(51);
+      this.slotCells.push({ bg, numTxt, nameTxt, ammoTxt });
+    }
+
+    const indicatorX = startX + (SLOT_COUNT - 1) * (SLOT_SIZE + SLOT_GAP) + SLOT_SIZE / 2 + 16;
+    this.aimIndicator = this.add.text(indicatorX, y, 'AUTO', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#88ffaa'
+    }).setOrigin(0, 0.5).setDepth(51);
+  }
+
+  renderSlotBar(state) {
+    if (!this.slotCells || !state) return;
+    const ship = SHIPS[state.currentShipId];
+    const hps = ship?.hardpoints ?? [];
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const cell = this.slotCells[i];
+      const hp = hps[i];
+      if (!hp) {
+        cell.bg.fillColor = SLOT_COLOR_EMPTY;
+        cell.bg.setStrokeStyle(2, SLOT_STROKE_EMPTY, 0.5);
+        cell.nameTxt.setText('—').setColor('#445566');
+        cell.numTxt.setColor('#445566');
+        cell.ammoTxt.setText('');
+        continue;
+      }
+      const slot = state.hardpoints?.[hp.id];
+      const wid = slot?.weaponId;
+      if (!wid) {
+        cell.bg.fillColor = SLOT_COLOR_EMPTY;
+        cell.bg.setStrokeStyle(2, SLOT_STROKE_EMPTY, 0.9);
+        cell.nameTxt.setText('—').setColor('#5a7090');
+        cell.numTxt.setColor('#88aacc');
+        cell.ammoTxt.setText('');
+        continue;
+      }
+      const w = WEAPONS[wid];
+      const ammo = state.ammo?.[wid];
+      const finiteAmmo = Number.isFinite(ammo);
+      const outOfAmmo = finiteAmmo && ammo <= 0;
+      const active = !!slot.active;
+
+      let fill = SLOT_COLOR_INACTIVE;
+      let stroke = SLOT_STROKE_INACTIVE;
+      if (active && outOfAmmo) { fill = SLOT_COLOR_NO_AMMO; stroke = SLOT_STROKE_NO_AMMO; }
+      else if (active) { fill = SLOT_COLOR_ACTIVE; stroke = SLOT_STROKE_ACTIVE; }
+
+      cell.bg.fillColor = fill;
+      cell.bg.setStrokeStyle(2, stroke, 0.95);
+      cell.nameTxt.setText(w?.short ?? wid.slice(0, 4).toUpperCase());
+      cell.nameTxt.setColor(weaponTint(wid));
+      cell.numTxt.setColor('#cfe6ff');
+      cell.ammoTxt.setText(finiteAmmo ? `${ammo}` : '');
+    }
+
+    if (state.autoAimEnabled) {
+      this.aimIndicator.setText('AUTO').setColor('#88ffaa');
+    } else {
+      this.aimIndicator.setText('MANUAL').setColor('#ffe28a');
+    }
   }
 
   update() {
     const state = this.registry.get('gameState');
     if (!state) return;
-    const weapon = WEAPONS[state.currentWeapon];
-    const ammo = state.ammo[state.currentWeapon];
     const ship = SHIPS[state.currentShipId];
 
     const sFrac = Phaser.Math.Clamp(state.shield / state.maxShield, 0, 1);
@@ -83,8 +183,6 @@ export default class HUDScene extends Phaser.Scene {
     this.chargingText.setText(state.charging ? '◆ CHARGING' : '');
 
     this.shipText.setText(`Ship:   ${ship.name}`);
-    this.weaponText.setText(`Weapon: ${weapon ? weapon.name : '—'}`);
-    this.ammoText.setText(`Ammo:   ${weapon && Number.isFinite(ammo) ? ammo : '∞'}`);
     this.speedText.setText(`Speed:  ${Math.round(state.speed)}`);
     this.oreText.setText(`Credits: ${state.credits ?? 0}`);
     this.rawOreText.setText(`Raw ore: ${state.cargo.ore || 0}`);
@@ -93,6 +191,7 @@ export default class HUDScene extends Phaser.Scene {
     this.levelText.setText(`Sector ${state.level ?? 1}`);
     this.deviceText.setText(state.hasPortalDevice ? 'Portal Device  ✓' : '');
 
+    this.renderSlotBar(state);
     this.drawMinimap();
   }
 
