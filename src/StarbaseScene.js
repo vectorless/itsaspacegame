@@ -84,7 +84,9 @@ export default class StarbaseScene extends Phaser.Scene {
       const py = p.y * this.tile + this.tile / 2;
       const img = this.add.image(px, py, sprite).setDepth(2);
       const propLabel = p.type === 'engineering' ? 'SHOP' : p.type.toUpperCase();
-      const label = this.add.text(px, py - this.tile * 0.65, propLabel, {
+      const ceilingProp = p.y <= this.level.height / 2;
+      const labelOffset = ceilingProp ? this.tile * 0.65 : -this.tile * 0.65;
+      const label = this.add.text(px, py + labelOffset, propLabel, {
         fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#88aacc',
         backgroundColor: '#0a121c', padding: { x: 6, y: 2 }
       }).setOrigin(0.5).setDepth(3);

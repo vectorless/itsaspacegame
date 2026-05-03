@@ -6,8 +6,8 @@ import {
 } from './constants.js';
 import ShipController from './ShipController.js';
 import { WEAPONS, effectiveStats } from './weapons.js';
-import { spawnAsteroid, damageAsteroid } from './asteroids.js';
-import { updateOre } from './ore.js';
+import { spawnAsteroid, damageAsteroid, consumeAsteroidOre } from './asteroids.js';
+import { updateOre, spawnOre, tryCollectCollectable } from './ore.js';
 import { freshCargo, freshAmmo, autoEquipFromCargo, ensureHardpointsValid, getEquippedWeapons, addItem } from './cargo.js';
 import { ensureGameState, resetAfterDeath, snapshotCargoToWreck, progressMission } from './state.js';
 import { MISSIONS } from './missions.js';
@@ -150,6 +150,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.physics.add.overlap(this.ship, this.enemies, this.onShipHitEnemy, null, this);
     this.physics.add.overlap(this.ship, this.drones, this.onShipHitDrone, null, this);
     this.physics.add.overlap(this.ship, this.enemyBullets, this.onShipHitEnemyBullet, null, this);
+    this.physics.add.overlap(this.ship, this.collectables, this.onShipPickupCollectable, null, this);
     this.physics.add.overlap(this.ship, this.portalDevices, this.onShipPickupDevice, null, this);
     this.physics.add.overlap(this.ship, this.wrecks, this.onShipHitWreck, null, this);
     for (const st of this.stations) {
@@ -592,6 +593,10 @@ export default class SpaceScene extends Phaser.Scene {
     this.cameras.main.flash(220, 200, 80, 220);
   }
 
+  onShipPickupCollectable(_ship, c) {
+    tryCollectCollectable(this, c);
+  }
+
   takeDamage(amount) {
     if (this.gameState.gameOver) return;
     if (this.time.now - this.lastHitTime < SHIP.hitCooldownMs) return;
@@ -696,13 +701,14 @@ export default class SpaceScene extends Phaser.Scene {
     if (!laserActive) this.miningExtractAccum = 0;
   }
 
-  findTargetFor(weaponId) {
+  findTargetFor(weaponId, range) {
     const cx = this.controller.x;
     const cy = this.controller.y;
     if (weaponId === 'mining_laser') {
-      let best = null, bestD2 = MINING_LASER.range * MINING_LASER.range;
+      const r = range ?? MINING_LASER.range;
+      let best = null, bestD2 = r * r;
       this.asteroidGroup.children.iterate((a) => {
-        if (!a || !a.active) return;
+        if (!a || !a.active || a.minedOut) return;
         const dx = a.x - cx, dy = a.y - cy;
         const d2 = dx * dx + dy * dy;
         if (d2 < bestD2) { bestD2 = d2; best = a; }
@@ -730,15 +736,16 @@ export default class SpaceScene extends Phaser.Scene {
 
     const sx = this.controller.x;
     const sy = this.controller.y;
+    const beamRange = stats.projSpeed ?? MINING_LASER.range;
     let target = null;
     if (this.gameState.autoAimEnabled) {
-      target = this.findTargetFor('mining_laser');
+      target = this.findTargetFor('mining_laser', beamRange);
     } else {
       const aim = this.controller.aimAngle ?? this.controller.angle;
       const dx = Math.cos(aim), dy = Math.sin(aim);
-      let endDist = MINING_LASER.range;
+      let endDist = beamRange;
       this.asteroidGroup.children.iterate((a) => {
-        if (!a || !a.active) return;
+        if (!a || !a.active || a.minedOut) return;
         const vx = a.x - sx, vy = a.y - sy;
         const along = vx * dx + vy * dy;
         if (along < 0 || along > endDist) return;
@@ -749,7 +756,7 @@ export default class SpaceScene extends Phaser.Scene {
       });
     }
 
-    if (!target) return false;
+    if (!target || target.minedOut) return false;
 
     this.gameState.energy = Math.max(0, this.gameState.energy - cost);
 
@@ -763,13 +770,32 @@ export default class SpaceScene extends Phaser.Scene {
     const rate = stats.special ?? MINING_LASER.extractRatePerSec;
     this.miningExtractAccum += rate * dtSec;
     while (this.miningExtractAccum >= 1) {
-      const added = addItem(this.gameState, 'ore', null, 1);
-      if (added === false || added === 0) { this.miningExtractAccum = 0; break; }
+      if (target.oreReserve <= 0) {
+        this.miningExtractAccum = 0;
+        break;
+      }
+      this.ejectOreFromAsteroid(target, sx, sy);
       this.miningExtractAccum -= 1;
-      const done = progressMission(this.gameState, 'mine_ore', 1);
-      if (done) this.flashMissionComplete('mine_ore');
+      consumeAsteroidOre(target, 1);
+      if (target.minedOut) break;
     }
     return true;
+  }
+
+  ejectOreFromAsteroid(asteroid, shipX, shipY) {
+    const ddx = shipX - asteroid.x;
+    const ddy = shipY - asteroid.y;
+    const dd = Math.hypot(ddx, ddy) || 1;
+    const r = (asteroid.width || 56) * (asteroid.scaleValue || 1) * 0.45;
+    const cpx = asteroid.x + (ddx / dd) * r;
+    const cpy = asteroid.y + (ddy / dd) * r;
+    const ore = spawnOre(this, cpx, cpy);
+    if (!ore || !ore.body) return;
+    const burstSpeed = 110 + Math.random() * 70;
+    const scatter = (Math.random() - 0.5) * 0.7;
+    const burstAng = Math.atan2(ddy, ddx) + scatter;
+    ore.body.velocity.x = Math.cos(burstAng) * burstSpeed;
+    ore.body.velocity.y = Math.sin(burstAng) * burstSpeed;
   }
 
   flashMissionComplete(missionId) {

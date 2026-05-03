@@ -51,7 +51,6 @@ export default class ShopScene extends Phaser.Scene {
 
     this.tabs = [
       { id: 'marketplace', label: 'MARKETPLACE' },
-      { id: 'weapons',     label: 'WEAPONS' },
       { id: 'wupgrades',   label: 'WEAPON UPG' },
       { id: 'upgrades',    label: 'SHIP UPG' },
       { id: 'ships',       label: 'SHIPS' }
@@ -112,7 +111,6 @@ export default class ShopScene extends Phaser.Scene {
     this.bodyContainer.removeAll(true);
 
     if (this.currentTab === 'marketplace') this.renderMarketplace();
-    else if (this.currentTab === 'weapons') this.renderWeapons();
     else if (this.currentTab === 'wupgrades') this.renderWeaponUpgrades();
     else if (this.currentTab === 'upgrades') this.renderUpgrades();
     else if (this.currentTab === 'ships') this.renderShips();
@@ -261,47 +259,6 @@ export default class ShopScene extends Phaser.Scene {
     }
   }
 
-  renderWeapons() {
-    const ids = ['missile', 'spread', 'homing', 'railgun'];
-    let i = 0;
-    for (const id of ids) {
-      const w = WEAPONS[id];
-      const owned = this.state.cargo.weapons.includes(id);
-      const room = freeSlots(this.state) >= 1;
-      let actionText, color, fn;
-      if (!owned) {
-        if (this.state.credits < w.cost) { actionText = `${w.cost} credits`; color = '#7a3a3a'; fn = null; }
-        else if (!room) { actionText = `${w.cost} credits (no cargo space)`; color = '#7a3a3a'; fn = null; }
-        else {
-          actionText = `Buy: ${w.cost} credits`; color = '#a8dcff';
-          fn = () => {
-            if (this.state.credits < w.cost) return;
-            if (!addItem(this.state, 'weapon', id)) return;
-            this.state.credits -= w.cost;
-            this.refresh();
-          };
-        }
-      } else if (id === 'homing') {
-        const cur = this.state.ammo.homing ?? 0;
-        const max = STARTING_AMMO.homing;
-        if (cur >= max) { actionText = 'Ammo full'; color = '#5a7090'; fn = null; }
-        else if (this.state.credits < w.cost) { actionText = `Refill: ${w.cost} credits`; color = '#7a3a3a'; fn = null; }
-        else {
-          actionText = `Refill: ${w.cost} credits`; color = '#a8dcff';
-          fn = () => {
-            if (this.state.credits < w.cost) return;
-            this.state.credits -= w.cost;
-            this.state.ammo.homing = STARTING_AMMO.homing;
-            this.refresh();
-          };
-        }
-      } else {
-        actionText = 'OWNED'; color = '#5a7090'; fn = null;
-      }
-      this.addRow(i++, `${w.name} — ${w.desc}`, actionText, color, fn);
-    }
-  }
-
   renderUpgrades() {
     let i = 0;
     // Tractor field
@@ -397,8 +354,25 @@ export default class ShopScene extends Phaser.Scene {
         const w = WEAPONS[item.id];
         const owned = this.state.cargo.weapons.includes(item.id);
         const room = freeSlots(this.state) >= 1;
+        const max = STARTING_AMMO[item.id];
+        const finiteAmmo = Number.isFinite(max);
         label = `${w.name} (weapon)  base ${item.basePrice}${modTag}`;
-        if (owned) {
+        if (owned && finiteAmmo) {
+          const cur = this.state.ammo[item.id] ?? 0;
+          if (cur >= max) {
+            actionText = 'OWNED — ammo full'; color = '#5a7090';
+          } else if (this.state.credits < price) {
+            actionText = `Refill ${price} cr (${cur}/${max})`; color = '#7a3a3a';
+          } else {
+            actionText = `Refill ${price} cr (${cur}/${max})`;
+            fn = () => {
+              if (this.state.credits < price) return;
+              this.state.credits -= price;
+              this.state.ammo[item.id] = max;
+              this.refresh();
+            };
+          }
+        } else if (owned) {
           actionText = 'OWNED'; color = '#5a7090';
         } else if (this.state.credits < price) {
           actionText = `Buy ${price} cr`; color = '#7a3a3a';

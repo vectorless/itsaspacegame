@@ -8,6 +8,8 @@ function spawnCollectable(scene, x, y, texture, kind, payload) {
   o.setDepth(5);
   const ang = Math.random() * Math.PI * 2;
   const speed = Phaser.Math.FloatBetween(ORE.driftSpeed * 0.6, ORE.driftSpeed * 1.4);
+  const bodyR = 14;
+  o.body.setCircle(bodyR, o.width / 2 - bodyR, o.height / 2 - bodyR);
   o.body.setVelocity(Math.cos(ang) * speed, Math.sin(ang) * speed);
   o.body.setAngularVelocity(Phaser.Math.FloatBetween(-90, 90));
   o.body.setCollideWorldBounds(true);
@@ -62,6 +64,16 @@ function collect(scene, c) {
   if (c.kind === 'scrap') return addItem(state, 'scrap', null, 1) !== false;
   if (c.kind === 'exotic') return addItem(state, 'exotic', c.payload);
   if (c.kind === 'weapon') return addItem(state, 'weapon', c.payload);
+  return false;
+}
+
+export function tryCollectCollectable(scene, c) {
+  if (!c || !c.active) return false;
+  if (collect(scene, c)) {
+    c.disableBody(true, true);
+    c.destroy();
+    return true;
+  }
   return false;
 }
 

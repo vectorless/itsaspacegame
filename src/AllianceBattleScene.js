@@ -157,6 +157,18 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.numKeys = [this.keys.ONE, this.keys.TWO, this.keys.THREE, this.keys.FOUR, this.keys.FIVE];
     ensureHardpointsValid(this.gameState);
 
+    // Snapshot prior active flags + force all armed slots ON for the mini-game.
+    this.prevSlotActive = {};
+    for (const hp of SHIPS[this.gameState.currentShipId].hardpoints) {
+      const slot = this.gameState.hardpoints[hp.id];
+      if (!slot) continue;
+      this.prevSlotActive[hp.id] = !!slot.active;
+      if (slot.weaponId && slot.weaponId !== 'mining_laser') {
+        slot.active = true;
+        slot.lastFire = 0;
+      }
+    }
+
     const equipped = getEquippedWeapons(this.gameState);
     if (equipped.length > 0 && !equipped.includes(this.gameState.currentWeapon)) {
       this.gameState.currentWeapon = equipped[0];
@@ -590,22 +602,33 @@ export default class AllianceBattleScene extends Phaser.Scene {
     const prompt = this.add.text(cx, cy + 140, 'Press SPACE or click to return', {
       fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#5a7090'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
-    this.tweens.add({ targets: prompt, alpha: 1, duration: 400, delay: 3200 });
-    this.tweens.add({ targets: prompt, alpha: 0.4, duration: 800, delay: 3700, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: prompt, alpha: 1, duration: 400, delay: 600 });
+    this.tweens.add({ targets: prompt, alpha: 0.4, duration: 800, delay: 1100, yoyo: true, repeat: -1 });
 
-    this.time.delayedCall(3000, () => {
-      this.input.keyboard.once('keydown-SPACE', () => this.exitToSpace());
-      this.input.once('pointerdown', () => this.exitToSpace());
-    });
-    this.time.delayedCall(10000, () => this.exitToSpace());
+    this.input.keyboard.once('keydown-SPACE', () => this.exitToSpace());
+    this.input.once('pointerdown', () => this.exitToSpace());
+    this.time.delayedCall(5000, () => this.exitToSpace());
   }
 
   exitToSpace() {
     if (this.exiting) return;
     this.exiting = true;
+    this.restoreSlotActive();
     this.input.setDefaultCursor('none');
+    if (this.scene.isPaused('SpaceScene')) {
+      this.scene.resume('SpaceScene');
+    } else if (!this.scene.isActive('SpaceScene')) {
+      this.scene.run('SpaceScene');
+    }
     this.scene.stop();
-    this.scene.run('SpaceScene');
+  }
+
+  restoreSlotActive() {
+    if (!this.prevSlotActive || !this.gameState?.hardpoints) return;
+    for (const id of Object.keys(this.prevSlotActive)) {
+      const slot = this.gameState.hardpoints[id];
+      if (slot) slot.active = this.prevSlotActive[id];
+    }
   }
 
   fail() {
@@ -644,12 +667,21 @@ export default class AllianceBattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
     this.tweens.add({ targets: note, alpha: 1, duration: 400, delay: 2200 });
 
-    this.time.delayedCall(3000, () => this.exitToStarbase());
+    const prompt = this.add.text(cx, cy + 88, 'Press SPACE or click to return', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#5a7090'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(122).setAlpha(0);
+    this.tweens.add({ targets: prompt, alpha: 1, duration: 400, delay: 1400 });
+    this.tweens.add({ targets: prompt, alpha: 0.4, duration: 800, delay: 1900, yoyo: true, repeat: -1 });
+
+    this.input.keyboard.once('keydown-SPACE', () => this.exitToStarbase());
+    this.input.once('pointerdown', () => this.exitToStarbase());
+    this.time.delayedCall(5000, () => this.exitToStarbase());
   }
 
   exitToStarbase() {
     if (this.exiting) return;
     this.exiting = true;
+    this.restoreSlotActive();
     try {
       resetAfterDeath(this.gameState);
       this.input.setDefaultCursor('default');

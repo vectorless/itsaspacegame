@@ -10,8 +10,8 @@ const PROFILES = {
     children(parent, impactAngle) {
       const perp = impactAngle + Math.PI / 2;
       return [
-        { angle: perp,           scale: parent.scaleValue * 0.62, speed: 80 },
-        { angle: perp + Math.PI, scale: parent.scaleValue * 0.62, speed: 80 }
+        { angle: perp,           scale: parent.scaleValue * 0.78, speed: 70 },
+        { angle: perp + Math.PI, scale: parent.scaleValue * 0.78, speed: 70 }
       ];
     }
   },
@@ -23,8 +23,8 @@ const PROFILES = {
       for (let i = 0; i < n; i++) {
         out.push({
           angle: impactAngle + Phaser.Math.FloatBetween(-0.6, 0.6),
-          scale: parent.scaleValue * Phaser.Math.FloatBetween(0.4, 0.6),
-          speed: Phaser.Math.Between(90, 150)
+          scale: parent.scaleValue * Phaser.Math.FloatBetween(0.55, 0.72),
+          speed: Phaser.Math.Between(80, 130)
         });
       }
       return out;
@@ -33,13 +33,13 @@ const PROFILES = {
   burst: {
     hpMul: 2.5,
     children(parent, impactAngle) {
-      const n = Phaser.Math.Between(4, 6);
+      const n = Phaser.Math.Between(3, 5);
       const out = [];
       for (let i = 0; i < n; i++) {
         out.push({
           angle: (i / n) * Math.PI * 2 + Phaser.Math.FloatBetween(-0.2, 0.2),
-          scale: parent.scaleValue * Phaser.Math.FloatBetween(0.3, 0.5),
-          speed: Phaser.Math.Between(60, 130)
+          scale: parent.scaleValue * Phaser.Math.FloatBetween(0.5, 0.66),
+          speed: Phaser.Math.Between(55, 110)
         });
       }
       return out;
@@ -49,21 +49,21 @@ const PROFILES = {
     hpMul: 2.0,
     children(parent, impactAngle) {
       return [
-        { angle: impactAngle + Math.PI / 3, scale: parent.scaleValue * 0.78, speed: 50 },
-        { angle: impactAngle - Math.PI / 3, scale: parent.scaleValue * 0.34, speed: 140 }
+        { angle: impactAngle + Math.PI / 3, scale: parent.scaleValue * 0.88, speed: 45 },
+        { angle: impactAngle - Math.PI / 3, scale: parent.scaleValue * 0.55, speed: 120 }
       ];
     }
   },
   tough: {
     hpMul: 5.0,
     children(parent, impactAngle) {
-      const n = 6;
+      const n = 5;
       const out = [];
       for (let i = 0; i < n; i++) {
         out.push({
           angle: (i / n) * Math.PI * 2,
-          scale: parent.scaleValue * 0.3,
-          speed: Phaser.Math.Between(100, 180)
+          scale: parent.scaleValue * 0.5,
+          speed: Phaser.Math.Between(80, 150)
         });
       }
       return out;
@@ -72,7 +72,9 @@ const PROFILES = {
 };
 
 const PROFILE_IDS = Object.keys(PROFILES);
-const MIN_SCALE = 0.22;
+const MIN_SCALE = 0.32;
+const MINED_OUT_TINT = 0x4a4640;
+const ORE_PER_SCALE_UNIT = 8;
 
 function pickProfileId() {
   return PROFILE_IDS[Math.floor(Math.random() * PROFILE_IDS.length)];
@@ -92,6 +94,8 @@ export function spawnAsteroid(scene, x, y, scale, profileId = pickProfileId(), d
   a.scaleValue = scale;
   a.profileId = profileId;
   a.hp = Math.max(1, Math.ceil(scale * profile.hpMul));
+  a.oreReserve = Math.max(2, Math.floor(scale * ORE_PER_SCALE_UNIT));
+  a.minedOut = false;
 
   const bw = a.width * scale * 0.85;
   a.body.setSize(bw, bw, true);
@@ -107,6 +111,21 @@ export function spawnAsteroid(scene, x, y, scale, profileId = pickProfileId(), d
   return a;
 }
 
+export function markAsteroidMinedOut(asteroid) {
+  if (!asteroid || asteroid.minedOut) return;
+  asteroid.minedOut = true;
+  asteroid.oreReserve = 0;
+  asteroid.setTint(MINED_OUT_TINT);
+}
+
+export function consumeAsteroidOre(asteroid, qty = 1) {
+  if (!asteroid || asteroid.oreReserve <= 0) return 0;
+  const taken = Math.min(qty, asteroid.oreReserve);
+  asteroid.oreReserve -= taken;
+  if (asteroid.oreReserve <= 0) markAsteroidMinedOut(asteroid);
+  return taken;
+}
+
 export function damageAsteroid(scene, asteroid, dmg, proj) {
   asteroid.hp -= dmg;
   scene.tweens.add({
@@ -114,11 +133,12 @@ export function damageAsteroid(scene, asteroid, dmg, proj) {
     alpha: 0.35,
     duration: 50,
     yoyo: true,
-    onComplete: () => asteroid.setAlpha(1)
+    onComplete: () => asteroid.setAlpha(asteroid.minedOut ? 0.85 : 1)
   });
 
-  if (Math.random() < ORE.dropChancePerHit) {
+  if (asteroid.oreReserve > 0 && Math.random() < ORE.dropChancePerHit) {
     spawnOre(scene, asteroid.x, asteroid.y);
+    consumeAsteroidOre(asteroid, 1);
   }
 
   if (asteroid.hp <= 0) splitAsteroid(scene, asteroid, proj);
@@ -138,7 +158,9 @@ function splitAsteroid(scene, asteroid, proj) {
   asteroid.destroy();
 
   for (let i = 0; i < ORE.bonusOnDestroy; i++) {
+    if (asteroid.oreReserve <= 0) break;
     spawnOre(scene, px, py);
+    asteroid.oreReserve -= 1;
   }
 
   const specs = profile.children({ scaleValue: parentScale }, impactAngle);
