@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
-import { SHIPS, MISSILE, BLASTER, RAILGUN, HOMING } from './constants.js';
+import { SHIPS, MISSILE, BLASTER, RAILGUN, HOMING, AUTO_AIM_RANGE } from './constants.js';
 import { MISSIONS } from './missions.js';
 import { ensureGameState, resetAfterDeath, completeMission } from './state.js';
-import { WEAPONS, nextWeaponId } from './weapons.js';
-import { getEquippedWeapons } from './cargo.js';
+import { WEAPONS, effectiveStats } from './weapons.js';
+import { getEquippedWeapons, ensureHardpointsValid } from './cargo.js';
 
 const SCROLL_SPEED = 80;
 const WORLD_WIDTH = 4800;
@@ -83,7 +83,8 @@ class Projectile extends Phaser.Physics.Arcade.Sprite {
       const ta = Math.atan2(target.y - this.y, target.x - this.x);
       const cur = Math.atan2(this.body.velocity.y, this.body.velocity.x);
       const diff = Phaser.Math.Angle.Wrap(ta - cur);
-      const turn = Phaser.Math.Clamp(diff, -HOMING.turnRate * dt, HOMING.turnRate * dt);
+      const turnRate = this.homingTurnRate ?? HOMING.turnRate;
+      const turn = Phaser.Math.Clamp(diff, -turnRate * dt, turnRate * dt);
       const nu = cur + turn;
       const speed = Math.hypot(this.body.velocity.x, this.body.velocity.y);
       this.body.velocity.x = Math.cos(nu) * speed;
@@ -152,14 +153,15 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, this.onPlayerHitEnemy, null, this);
     this.physics.add.overlap(this.player, this.enemyBullets, this.onPlayerHitEnemyBullet, null, this);
 
-    this.keys = this.input.keyboard.addKeys('A,D,W,S,E,F,LEFT,RIGHT,UP,DOWN,SPACE,SHIFT');
+    this.keys = this.input.keyboard.addKeys('A,D,W,S,Q,F,LEFT,RIGHT,UP,DOWN,SPACE,SHIFT,ONE,TWO,THREE,FOUR,FIVE');
+    this.numKeys = [this.keys.ONE, this.keys.TWO, this.keys.THREE, this.keys.FOUR, this.keys.FIVE];
+    ensureHardpointsValid(this.gameState);
 
     const equipped = getEquippedWeapons(this.gameState);
     if (equipped.length > 0 && !equipped.includes(this.gameState.currentWeapon)) {
       this.gameState.currentWeapon = equipped[0];
     }
 
-    this.lastFire = 0;
     this.lastBomb = 0;
 
     this.makeHud();
@@ -248,7 +250,7 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.hudWave = this.add.text(12, 48, '', { ...style, color: '#ffe28a' }).setScrollFactor(0).setDepth(100);
     this.hudTargets = this.add.text(12, 68, '', { ...style, color: '#88ffaa' }).setScrollFactor(0).setDepth(100);
     this.hudHelp = this.add.text(VIEW_W / 2, VIEW_H - 14,
-      'WASD/arrows move • Click/Space fire • Shift / Right-click bomb • E weapon • F loadout',
+      'WASD/arrows move • 1-5 toggle slots • Q auto-aim • Shift / Right-click bomb • F loadout',
       { ...style, color: '#5a7090', fontSize: '11px' }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
     this.titleText = this.add.text(VIEW_W / 2, 70, '', {
       ...style, color: '#ffe28a', fontSize: '22px'
@@ -297,18 +299,12 @@ export default class AllianceBattleScene extends Phaser.Scene {
     if (this.player.y > GROUND_Y - 12) { this.player.y = GROUND_Y - 12; v.y = Math.min(0, v.y); }
     if (this.player.y < 30) { this.player.y = 30; v.y = Math.max(0, v.y); }
 
-    const equipped = getEquippedWeapons(this.gameState);
-    if (equipped.length > 0 && !equipped.includes(this.gameState.currentWeapon)) {
-      this.gameState.currentWeapon = equipped[0];
-    }
-
-    if (Phaser.Input.Keyboard.JustDown(k.E)) {
-      this.gameState.currentWeapon = nextWeaponId(this.gameState.currentWeapon, equipped);
+    if (Phaser.Input.Keyboard.JustDown(k.Q)) {
+      this.gameState.autoAimEnabled = !this.gameState.autoAimEnabled;
     }
 
     const pointer = this.input.activePointer;
-    const fireHeld = k.SPACE.isDown || pointer.leftButtonDown();
-    if (fireHeld) this.tryFireWeapon(time);
+    this.processWeaponSlots(time);
 
     const bombHeld = k.SHIFT.isDown || pointer.rightButtonDown();
     if (bombHeld && time - this.lastBomb >= PLAYER.bombCooldownMs) {
@@ -320,10 +316,8 @@ export default class AllianceBattleScene extends Phaser.Scene {
     this.updateTurrets(time);
 
     this.hudHull.setText(`HULL  ${Math.round(this.gameState.hull)} / ${this.gameState.maxHull}`);
-    const w = WEAPONS[this.gameState.currentWeapon];
-    const ammo = this.gameState.ammo[this.gameState.currentWeapon];
-    const ammoTxt = w ? (Number.isFinite(ammo) ? `${ammo}` : '∞') : '—';
-    this.hudWeapon.setText(`WEAPON  ${w ? w.name : '—'}  (${ammoTxt})`);
+    const aimTxt = this.gameState.autoAimEnabled ? 'AUTO' : 'MANUAL';
+    this.hudWeapon.setText(`AIM  ${aimTxt}    (1-5 toggle slots, Q toggle aim)`);
     const remaining = this.enemies.countActive(true);
     this.hudWave.setText(`WAVE  ${this.waveIdx + 1} / ${WAVES.length}    Enemies: ${remaining}`);
     const aliveTurrets = this.turretObjs.filter((t) => t.active).length;
@@ -335,25 +329,77 @@ export default class AllianceBattleScene extends Phaser.Scene {
     }
   }
 
-  tryFireWeapon(time) {
-    const id = this.gameState.currentWeapon;
-    if (!id || id === 'mining_laser') return;
-    const w = WEAPONS[id];
-    if (!w || !w.fire || time - this.lastFire < w.cooldownMs) return;
-    const ammo = this.gameState.ammo[id];
-    if (Number.isFinite(ammo) && ammo <= 0) return;
+  processWeaponSlots(time) {
+    const ship = SHIPS[this.gameState.currentShipId];
+    const k = this.keys;
+    ship.hardpoints.forEach((hp, i) => {
+      const numKey = this.numKeys[i];
+      if (!numKey) return;
+      if (Phaser.Input.Keyboard.JustDown(numKey)) {
+        const slot = this.gameState.hardpoints[hp.id];
+        if (slot && slot.weaponId) slot.active = !slot.active;
+      }
+    });
 
-    const shipObj = {
-      x: this.player.x,
-      y: this.player.y,
-      vx: this.player.body.velocity.x,
-      vy: this.player.body.velocity.y,
-      angle: 0,
-      aimAngle: 0
-    };
-    w.fire(this, shipObj);
-    if (Number.isFinite(ammo)) this.gameState.ammo[id] = ammo - 1;
-    this.lastFire = time;
+    for (const hp of ship.hardpoints) {
+      const slot = this.gameState.hardpoints[hp.id];
+      if (!slot || !slot.active || !slot.weaponId) continue;
+      if (slot.weaponId === 'mining_laser') continue; // no asteroids in this scene
+      const stats = effectiveStats(slot.weaponId, this.gameState.weaponUpgrades);
+      if (!stats) continue;
+      if (time - slot.lastFire < stats.cooldownMs) continue;
+      const ammo = this.gameState.ammo[slot.weaponId];
+      if (Number.isFinite(ammo) && ammo <= 0) continue;
+
+      let aim = 0;
+      if (this.gameState.autoAimEnabled) {
+        const target = this.findTargetFor(slot.weaponId);
+        if (!target) continue;
+        aim = Math.atan2(target.y - this.player.y, target.x - this.player.x);
+      } else {
+        const pointer = this.input.activePointer;
+        const cam = this.cameras.main;
+        const aimX = pointer.x + cam.scrollX;
+        const aimY = pointer.y + cam.scrollY;
+        aim = Math.atan2(aimY - this.player.y, aimX - this.player.x);
+      }
+
+      const shipObj = {
+        x: this.player.x,
+        y: this.player.y,
+        vx: this.player.body.velocity.x,
+        vy: this.player.body.velocity.y,
+        angle: aim,
+        aimAngle: aim
+      };
+      const fire = WEAPONS[slot.weaponId]?.fire;
+      if (!fire) continue;
+      fire(this, shipObj, aim, stats);
+      if (Number.isFinite(ammo)) this.gameState.ammo[slot.weaponId] = ammo - 1;
+      slot.lastFire = time;
+    }
+  }
+
+  findTargetFor(_weaponId) {
+    const px = this.player.x, py = this.player.y;
+    let best = null, bestD2 = AUTO_AIM_RANGE * AUTO_AIM_RANGE;
+    this.enemies.children.iterate((e) => {
+      if (!e || !e.active) return;
+      if (e.x < px) return; // only target enemies in front (we move right)
+      const dx = e.x - px, dy = e.y - py;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) { bestD2 = d2; best = e; }
+    });
+    if (best) return best;
+    // fall back to turrets
+    for (const t of this.turretObjs) {
+      if (!t.active) continue;
+      if (t.x < px) continue;
+      const dx = t.x - px, dy = t.y - py;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) { bestD2 = d2; best = t; }
+    }
+    return best;
   }
 
   firePlayerBomb() {
