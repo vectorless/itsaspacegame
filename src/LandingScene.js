@@ -83,13 +83,28 @@ export default class LandingScene extends Phaser.Scene {
     if (this.mode === 'takeoff') {
       this.setupTakeoff();
     } else {
-      this.add.text(w / 2, 14, 'LAND ON THE LIT PAD — speed < 30 — keep upright', {
-        ...style, color: '#88aacc'
-      }).setOrigin(0.5);
-      this.add.text(w / 2, 32, 'A/D rotate  •  W thrust', {
-        ...style, color: '#5a7090'
-      }).setOrigin(0.5);
+      this.setupLand(style);
     }
+  }
+
+  setupLand(style) {
+    const w = this.scale.width;
+    this.abortPhase = null;
+    this.abortThresholdY = 60;
+    this.abortBand = this.add.rectangle(0, 0, w, this.abortThresholdY, 0x3a8aff, 0.08)
+      .setOrigin(0, 0).setDepth(1);
+    this.add.line(0, 0, 0, this.abortThresholdY, w, this.abortThresholdY, 0x6cd0ff, 0.5)
+      .setOrigin(0, 0).setDepth(1);
+    this.add.text(w / 2, this.abortThresholdY - 12, '↑ ABORT — RETURN TO SPACE ↑', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: '#6cd0ff'
+    }).setOrigin(0.5).setDepth(1);
+
+    this.add.text(w / 2, this.scale.height - 24, 'LAND ON THE LIT PAD — speed < 30 — keep upright', {
+      ...style, color: '#88aacc'
+    }).setOrigin(0.5);
+    this.add.text(w / 2, this.scale.height - 8, 'A/D rotate  •  W thrust  •  pull up to abort', {
+      ...style, color: '#5a7090', fontSize: '12px'
+    }).setOrigin(0.5);
   }
 
   setupTakeoff() {
@@ -164,6 +179,30 @@ export default class LandingScene extends Phaser.Scene {
 
     if (this.outcomeShown) return;
 
+    if (this.abortPhase === 'leaving') {
+      this.vy -= LANDING.thrustAccel * 1.6 * dt;
+      this.y += this.vy * dt;
+      this.lander.setPosition(this.x, this.y);
+
+      const back = 14;
+      this.thrust.setPosition(
+        this.x - Math.cos(this.angle) * back,
+        this.y - Math.sin(this.angle) * back
+      );
+      this.thrust.setRotation(this.angle + Math.PI);
+      this.thrust.setScale(0.85 + Math.random() * 0.3, 0.9 + Math.random() * 0.2);
+      this.thrust.setAlpha(0.75 + Math.random() * 0.25);
+      this.thrust.setVisible(true);
+
+      if (this.y < -40) {
+        this.outcomeShown = true;
+        this.scene.stop();
+        if (this.scene.isPaused('SpaceScene')) this.scene.resume('SpaceScene');
+        else this.scene.run('SpaceScene');
+      }
+      return;
+    }
+
     if (this.keys.A.isDown) this.angle -= LANDING.rotSpeed * dt;
     if (this.keys.D.isDown) this.angle += LANDING.rotSpeed * dt;
     this.lander.setRotation(this.angle);
@@ -194,9 +233,16 @@ export default class LandingScene extends Phaser.Scene {
 
     if (this.x < 0) { this.x = 0; this.vx = -this.vx * 0.3; }
     else if (this.x > this.scale.width) { this.x = this.scale.width; this.vx = -this.vx * 0.3; }
-    if (this.y < 16) { this.y = 16; this.vy = 0; }
 
     this.lander.setPosition(this.x, this.y);
+
+    if (this.y < this.abortThresholdY && this.vy < 0) {
+      this.abortPhase = 'leaving';
+      this.add.text(this.scale.width / 2, 90, 'ABORTING — RETURNING TO SPACE', {
+        fontFamily: 'system-ui, sans-serif', fontSize: '20px', color: '#6cd0ff'
+      }).setOrigin(0.5).setDepth(20);
+      return;
+    }
 
     const terrainY = this.terrainYAt(this.x);
     if (this.y >= terrainY - this.landerRestOffset) {

@@ -8,6 +8,8 @@ function spawnCollectable(scene, x, y, texture, kind, payload) {
   o.setDepth(5);
   const ang = Math.random() * Math.PI * 2;
   const speed = Phaser.Math.FloatBetween(ORE.driftSpeed * 0.6, ORE.driftSpeed * 1.4);
+  const bodyR = 14;
+  o.body.setCircle(bodyR, o.width / 2 - bodyR, o.height / 2 - bodyR);
   o.body.setVelocity(Math.cos(ang) * speed, Math.sin(ang) * speed);
   o.body.setAngularVelocity(Phaser.Math.FloatBetween(-90, 90));
   o.body.setCollideWorldBounds(true);
@@ -65,6 +67,16 @@ function collect(scene, c) {
   return false;
 }
 
+export function tryCollectCollectable(scene, c) {
+  if (!c || !c.active) return false;
+  if (collect(scene, c)) {
+    c.disableBody(true, true);
+    c.destroy();
+    return true;
+  }
+  return false;
+}
+
 export function updateOre(scene, dtSec) {
   const ship = scene.controller;
   const state = scene.gameState;
@@ -93,16 +105,9 @@ export function updateOre(scene, dtSec) {
 
     if (o.locked) {
       const d = Math.sqrt(d2) || 0.001;
-      const ax = (dx / d) * MAGNET.accel;
-      const ay = (dy / d) * MAGNET.accel;
-      o.body.velocity.x += ax * dtSec;
-      o.body.velocity.y += ay * dtSec;
-      const sp = Math.hypot(o.body.velocity.x, o.body.velocity.y);
-      if (sp > MAGNET.maxOreSpeed) {
-        const k = MAGNET.maxOreSpeed / sp;
-        o.body.velocity.x *= k;
-        o.body.velocity.y *= k;
-      }
+      const speed = MAGNET.maxOreSpeed;
+      o.body.velocity.x = (dx / d) * speed;
+      o.body.velocity.y = (dy / d) * speed;
     }
   });
 }

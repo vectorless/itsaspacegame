@@ -95,7 +95,7 @@ export const DAMAGE = {
 };
 
 export const ENEMY = {
-  maxAlive: 2,
+  maxAlive: 4,
   spawnDelayMinMs: 22000,
   spawnDelayMaxMs: 48000,
   spawnRingMin: 900,
@@ -224,7 +224,7 @@ export const COLORS = {
   starFar: 0x6677aa
 };
 
-export const ASTEROID_COUNT = 20;
+export const ASTEROID_COUNT = 40;
 
 export const ORE = {
   dropChancePerHit: 0.35,
@@ -302,7 +302,7 @@ export const PORTAL = {
 export const BLACKHOLE = {
   count: 1,
   gravityRadius: 700,
-  maxAccel: 350,
+  maxAccel: 420,
   eventHorizonRadius: 30,
   hullDamageOnEventHorizon: 60,
   minDistFromCenter: 1500,
@@ -315,12 +315,12 @@ export const ENERGY = {
   max: 100,
   shieldRegenCost: 1,
   chargePerSec: 35,
-  laserCostPerSec: 30,
+  laserCostPerSec: 12,
   passiveRegenPerSec: 2
 };
 
 export const MINING_LASER = {
-  range: 560,
+  range: 280,
   extractRatePerSec: 3.0,
   beamColor: 0x66ff88,
   beamColorCore: 0xffffff,
@@ -328,6 +328,29 @@ export const MINING_LASER = {
 };
 
 export const LEVEL = {
-  asteroidsPerLevel: 6,
+  asteroidsPerLevel: 12,
   enemySpawnSpeedup: 0.85
 };
+
+export const WEAPON_UPGRADES = {
+  damage: {
+    label: 'Damage',
+    maxLevel: 5,
+    apply: (base, lvl) => base + lvl,
+    cost: (curLvl) => 50 * Math.pow(2, curLvl)
+  },
+  rate: {
+    label: 'Rate of Fire',
+    maxLevel: 5,
+    apply: (cd, lvl) => Math.max(60, cd * Math.pow(0.85, lvl)),
+    cost: (curLvl) => 80 * Math.pow(2, curLvl)
+  },
+  range: {
+    label: 'Range / Speed',
+    maxLevel: 5,
+    apply: (speed, lvl) => speed * (1 + 0.15 * lvl),
+    cost: (curLvl) => 60 * Math.pow(2, curLvl)
+  }
+};
+
+export const AUTO_AIM_RANGE = 800;

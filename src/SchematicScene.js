@@ -105,7 +105,8 @@ export default class SchematicScene extends Phaser.Scene {
     this.gridArtifacts = [];
 
     for (const hp of this.hardpointObjects) {
-      const wid = this.state.hardpoints[hp.id];
+      const slot = this.state.hardpoints[hp.id];
+      const wid = slot?.weaponId;
       if (!wid) continue;
       this.draggables.push(this.makeDraggable(wid, hp.x, hp.y, { source: 'hp', hardpointId: hp.id }));
     }
@@ -115,7 +116,11 @@ export default class SchematicScene extends Phaser.Scene {
 
   buildSlotList() {
     const slots = [];
-    const equipped = new Set(Object.values(this.state.hardpoints).filter(Boolean));
+    const equipped = new Set(
+      Object.values(this.state.hardpoints)
+        .map((s) => s?.weaponId)
+        .filter(Boolean)
+    );
     for (const w of this.state.cargo.weapons) {
       if (!equipped.has(w)) slots.push({ kind: 'weapon', id: w });
     }
@@ -210,13 +215,28 @@ export default class SchematicScene extends Phaser.Scene {
     }
 
     if (target) {
-      const evicted = this.state.hardpoints[target.id];
+      const targetSlot = this.state.hardpoints[target.id];
+      const evictedId = targetSlot?.weaponId ?? null;
       if (obj.dragInfo.source === 'hp') {
-        this.state.hardpoints[obj.dragInfo.hardpointId] = evicted ?? null;
+        const sourceSlot = this.state.hardpoints[obj.dragInfo.hardpointId];
+        if (sourceSlot) {
+          sourceSlot.weaponId = evictedId;
+          if (!evictedId) sourceSlot.active = false;
+        }
       }
-      this.state.hardpoints[target.id] = obj.weaponId;
+      if (targetSlot) {
+        if (targetSlot.weaponId !== obj.weaponId) {
+          targetSlot.active = false;
+          targetSlot.lastFire = 0;
+        }
+        targetSlot.weaponId = obj.weaponId;
+      }
     } else if (obj.dragInfo.source === 'hp') {
-      this.state.hardpoints[obj.dragInfo.hardpointId] = null;
+      const sourceSlot = this.state.hardpoints[obj.dragInfo.hardpointId];
+      if (sourceSlot) {
+        sourceSlot.weaponId = null;
+        sourceSlot.active = false;
+      }
     }
 
     this.refreshCurrentWeapon();
@@ -224,7 +244,9 @@ export default class SchematicScene extends Phaser.Scene {
   }
 
   refreshCurrentWeapon() {
-    const equipped = Object.values(this.state.hardpoints).filter(Boolean);
+    const equipped = Object.values(this.state.hardpoints)
+      .map((s) => s?.weaponId)
+      .filter(Boolean);
     if (equipped.length === 0) {
       this.state.currentWeapon = null;
     } else if (!equipped.includes(this.state.currentWeapon)) {

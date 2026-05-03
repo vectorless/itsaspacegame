@@ -33,6 +33,11 @@ export default class StarbaseScene extends Phaser.Scene {
     this.bindKeys();
     this.makePromptText();
 
+    const worldW = this.level.width * this.tile;
+    const worldH = this.level.height * this.tile;
+    this.cameras.main.setBounds(0, 0, worldW, worldH);
+    this.cameras.main.startFollow(this.crew, true, 0.18, 0.18);
+
     this.lastCheckpoint = {
       x: this.level.spawn.x * this.tile + this.tile / 2,
       y: this.level.spawn.y * this.tile + this.tile / 2,
@@ -45,7 +50,7 @@ export default class StarbaseScene extends Phaser.Scene {
       const txt = this.add.text(cx, 80,
         `INSURANCE PAID OUT\n+${state.lastInsurancePayout.toLocaleString()} cr`,
         { fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#88ffaa', align: 'center', backgroundColor: '#001020', padding: { x: 12, y: 8 } }
-      ).setOrigin(0.5).setDepth(50);
+      ).setOrigin(0.5).setDepth(50).setScrollFactor(0);
       this.tweens.add({ targets: txt, alpha: 0, y: 60, duration: 5000, ease: 'Cubic.easeIn', onComplete: () => txt.destroy() });
       state.lastInsurancePayout = 0;
     }
@@ -79,9 +84,12 @@ export default class StarbaseScene extends Phaser.Scene {
       const py = p.y * this.tile + this.tile / 2;
       const img = this.add.image(px, py, sprite).setDepth(2);
       const propLabel = p.type === 'engineering' ? 'SHOP' : p.type.toUpperCase();
-      const label = this.add.text(px, py - this.tile, propLabel, {
-        fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: '#88aacc'
-      }).setOrigin(0.5).setDepth(2);
+      const ceilingProp = p.y <= this.level.height / 2;
+      const labelOffset = ceilingProp ? this.tile * 0.65 : -this.tile * 0.65;
+      const label = this.add.text(px, py + labelOffset, propLabel, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#88aacc',
+        backgroundColor: '#0a121c', padding: { x: 6, y: 2 }
+      }).setOrigin(0.5).setDepth(3);
       this.props.push({ ...p, img, label, px, py });
     }
   }
@@ -101,11 +109,13 @@ export default class StarbaseScene extends Phaser.Scene {
 
   makePromptText() {
     this.promptText = this.add.text(this.scale.width / 2, this.scale.height - 24, '', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#88aacc'
-    }).setOrigin(0.5).setDepth(40);
-    this.helpText = this.add.text(12, 8, 'A/D move • SPACE flip gravity • E interact', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: '#5a7090'
-    }).setDepth(40);
+      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#cfe6ff',
+      backgroundColor: '#0a121c', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(40).setScrollFactor(0);
+    this.helpText = this.add.text(12, 8, 'A/D move • SPACE flip gravity • E interact • F loadout', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#88aacc',
+      backgroundColor: '#0a121c', padding: { x: 6, y: 2 }
+    }).setDepth(40).setScrollFactor(0);
   }
 
   isSolid(col, row) {
