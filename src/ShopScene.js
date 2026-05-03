@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { WEAPONS, STARTING_AMMO } from './weapons.js';
-import { REPAIR, MAGNET, SHIELD_UPGRADE, SHIPS, EXOTICS, DROPS, MARKETPLACE } from './constants.js';
+import { REPAIR, MAGNET, SHIELD_UPGRADE, SHIPS, EXOTICS, DROPS, MARKETPLACE, WEAPON_UPGRADES } from './constants.js';
 import { sellItem, autoSellOverflow, usedSlots, maxSlots, freeSlots, addItem } from './cargo.js';
+import { ensureWeaponUpgrades } from './state.js';
 
 const PANEL_W = 720;
 const PANEL_H = 520;
@@ -48,19 +49,30 @@ export default class ShopScene extends Phaser.Scene {
       fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#ffe28a'
     }).setOrigin(0.5);
 
-    this.tabs = ['marketplace', 'weapons', 'upgrades', 'ships'];
+    this.tabs = [
+      { id: 'marketplace', label: 'MARKETPLACE' },
+      { id: 'weapons',     label: 'WEAPONS' },
+      { id: 'wupgrades',   label: 'WEAPON UPG' },
+      { id: 'upgrades',    label: 'SHIP UPG' },
+      { id: 'ships',       label: 'SHIPS' }
+    ];
     this.currentTab = 'marketplace';
     this.tabButtons = [];
     const tabY = h / 2 - PANEL_H / 2 + 86;
+    const tabW = 124;
+    const tabGap = 8;
+    const totalTabs = this.tabs.length;
+    const totalW = totalTabs * tabW + (totalTabs - 1) * tabGap;
+    const startX = w / 2 - totalW / 2 + tabW / 2;
     this.tabs.forEach((t, i) => {
-      const x = w / 2 - 240 + i * 160;
-      const btn = this.add.rectangle(x, tabY, 140, 28, 0x18283a, 0.95)
+      const x = startX + i * (tabW + tabGap);
+      const btn = this.add.rectangle(x, tabY, tabW, 28, 0x18283a, 0.95)
         .setStrokeStyle(1, 0x3aa1ff, 0.5).setInteractive({ useHandCursor: true });
-      const txt = this.add.text(x, tabY, t.toUpperCase(), {
-        fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#cfe6ff'
+      const txt = this.add.text(x, tabY, t.label, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#cfe6ff'
       }).setOrigin(0.5);
-      btn.on('pointerdown', (p) => { if (p.button === 0) this.switchTab(t); });
-      this.tabButtons.push({ id: t, btn, txt });
+      btn.on('pointerdown', (p) => { if (p.button === 0) this.switchTab(t.id); });
+      this.tabButtons.push({ id: t.id, btn, txt });
     });
 
     this.bodyContainer = this.add.container(w / 2, tabY + 30);
@@ -101,8 +113,94 @@ export default class ShopScene extends Phaser.Scene {
 
     if (this.currentTab === 'marketplace') this.renderMarketplace();
     else if (this.currentTab === 'weapons') this.renderWeapons();
+    else if (this.currentTab === 'wupgrades') this.renderWeaponUpgrades();
     else if (this.currentTab === 'upgrades') this.renderUpgrades();
     else if (this.currentTab === 'ships') this.renderShips();
+  }
+
+  renderWeaponUpgrades() {
+    ensureWeaponUpgrades(this.state);
+    const order = ['blaster', 'mining_laser', 'spread', 'missile', 'homing', 'railgun'];
+    let i = 0;
+    for (const wid of order) {
+      const w = WEAPONS[wid];
+      if (!w) continue;
+      const owned = this.state.cargo.weapons.includes(wid);
+      this.addUpgradeRow(i++, wid, w, owned);
+    }
+  }
+
+  addUpgradeRow(i, wid, w, owned) {
+    const y = 16 + i * 60;
+    const rect = this.add.rectangle(0, y, PANEL_W - 60, 56, 0x18283a, 0.95)
+      .setStrokeStyle(1, 0x3aa1ff, 0.4);
+    const nameLabel = this.add.text(-(PANEL_W / 2 - 50), y - 10, w.name, {
+      fontFamily: 'system-ui, sans-serif', fontSize: '13px',
+      color: owned ? '#fff0a0' : '#5a7090'
+    }).setOrigin(0, 0.5);
+    const subLabel = this.add.text(-(PANEL_W / 2 - 50), y + 10,
+      owned ? 'OWNED' : 'buy at Marketplace first', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '10px',
+      color: owned ? '#88ffaa' : '#5a7090'
+    }).setOrigin(0, 0.5);
+    this.bodyContainer.add([rect, nameLabel, subLabel]);
+
+    const tracks = [
+      { id: 'damage', def: WEAPON_UPGRADES.damage, abbr: 'DMG' },
+      { id: 'rate',   def: WEAPON_UPGRADES.rate,   abbr: 'RAT' },
+      { id: 'range',  def: WEAPON_UPGRADES.range,  abbr: 'RNG' }
+    ];
+    if (w.special) tracks.push({ id: 'special', def: w.special, abbr: 'SPC' });
+
+    const btnW = 92;
+    const btnGap = 4;
+    const btnTotal = tracks.length * btnW + (tracks.length - 1) * btnGap;
+    const btnStartX = (PANEL_W / 2 - 50) - btnTotal + btnW / 2;
+
+    tracks.forEach((tr, idx) => {
+      const cx = btnStartX + idx * (btnW + btnGap);
+      const cur = this.state.weaponUpgrades[wid][tr.id] ?? 0;
+      const max = tr.def.maxLevel;
+      const maxed = cur >= max;
+      const cost = maxed ? 0 : Math.floor(tr.def.cost(cur));
+      const can = owned && !maxed && (this.state.credits ?? 0) >= cost;
+
+      let fill = 0x18283a;
+      let stroke = 0x3aa1ff;
+      let strokeAlpha = 0.4;
+      let textColor = '#88aacc';
+      if (!owned) {
+        fill = 0x101820; stroke = 0x445566; strokeAlpha = 0.4; textColor = '#5a7090';
+      } else if (maxed) {
+        fill = 0x122a1a; stroke = 0x3a7a4a; strokeAlpha = 0.6; textColor = '#5a7090';
+      } else if (can) {
+        fill = 0x1a3450; stroke = 0x6cd0ff; strokeAlpha = 0.7; textColor = '#a8dcff';
+      } else {
+        fill = 0x18283a; stroke = 0x7a3a3a; strokeAlpha = 0.5; textColor = '#7a3a3a';
+      }
+
+      const btn = this.add.rectangle(cx, y, btnW, 44, fill, 1)
+        .setStrokeStyle(1, stroke, strokeAlpha);
+      const top = this.add.text(cx, y - 10, `${tr.abbr}  ${cur}/${max}`, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: textColor
+      }).setOrigin(0.5);
+      const bottom = this.add.text(cx, y + 10, maxed ? 'MAX' : `${cost} cr`, {
+        fontFamily: 'system-ui, sans-serif', fontSize: '11px', color: textColor
+      }).setOrigin(0.5);
+      this.bodyContainer.add([btn, top, bottom]);
+      if (can) {
+        btn.setInteractive({ useHandCursor: true });
+        btn.on('pointerdown', (p) => {
+          if (p.button !== 0) return;
+          if ((this.state.credits ?? 0) < cost) return;
+          this.state.credits -= cost;
+          this.state.weaponUpgrades[wid][tr.id] = cur + 1;
+          this.refresh();
+        });
+        btn.on('pointerover', () => btn.setFillStyle(0x223a52, 1));
+        btn.on('pointerout',  () => btn.setFillStyle(fill, 1));
+      }
+    });
   }
 
   rowY(i) { return 16 + i * 38; }
