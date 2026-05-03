@@ -1,9 +1,9 @@
 export const CREW = {
-  walkSpeed: 140,
-  gravity: 1500,
-  maxFall: 600,
-  width: 12,
-  height: 14
+  walkSpeed: 560,
+  gravity: 6000,
+  maxFall: 2400,
+  width: 48,
+  height: 56
 };
 
 export default class CrewController {

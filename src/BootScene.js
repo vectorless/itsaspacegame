@@ -361,159 +361,489 @@ export default class BootScene extends Phaser.Scene {
   }
 
   makeStarbaseTextures() {
-    const t = 24;
+    const t = 96;
 
-    // Solid wall tile
+    const px = (g, color, x, y, w = 1, h = 1) => {
+      g.fillStyle(color, 1);
+      g.fillRect(Math.floor(x), Math.floor(y), w, h);
+    };
+    const outline = (g, color, x, y, w, h) => {
+      g.fillStyle(color, 1);
+      g.fillRect(x, y, w, 1);             // top
+      g.fillRect(x, y + h - 1, w, 1);     // bottom
+      g.fillRect(x, y, 1, h);             // left
+      g.fillRect(x + w - 1, y, 1, h);     // right
+    };
+
+    // Solid wall tile — bulkhead panel with rivets, beveled edge, vent grille
     {
       const g = this.add.graphics();
-      g.fillStyle(0x33445a, 1);
-      g.fillRect(0, 0, t, t);
-      g.fillStyle(0x556a82, 1);
-      g.fillRect(0, 0, t, 2);
-      g.fillRect(0, 0, 2, t);
-      g.fillStyle(0x1a2638, 1);
-      g.fillRect(0, t - 2, t, 2);
-      g.fillRect(t - 2, 0, 2, t);
-      g.fillStyle(0x222d40, 1);
-      g.fillRect(8, 8, 8, 8);
+      // base panel
+      px(g, 0x33445a, 0, 0, t, t);
+      // light bevel (top, left)
+      px(g, 0x6a82a0, 0, 0, t, 4);
+      px(g, 0x6a82a0, 0, 0, 4, t);
+      // dark bevel (bottom, right)
+      px(g, 0x121a26, 0, t - 4, t, 4);
+      px(g, 0x121a26, t - 4, 0, 4, t);
+      // outer line-art outline
+      outline(g, 0x0a121c, 0, 0, t, t);
+      // inset panel
+      outline(g, 0x1a2638, 8, 8, t - 16, t - 16);
+      px(g, 0x29384e, 9, 9, t - 18, t - 18);
+      // central plate
+      px(g, 0x3c5070, 28, 28, t - 56, t - 56);
+      outline(g, 0x10182a, 28, 28, t - 56, t - 56);
+      // grille slots (line-art horizontal)
+      for (let i = 0; i < 4; i++) {
+        const ry = 36 + i * 6;
+        px(g, 0x141d2c, 36, ry, t - 72, 2);
+        px(g, 0x4c648a, 36, ry + 1, t - 72, 1);
+      }
+      // corner rivets (small dark + highlight)
+      const rivets = [[12, 12], [t - 16, 12], [12, t - 16], [t - 16, t - 16]];
+      for (const [rx, ry] of rivets) {
+        px(g, 0x0a121c, rx, ry, 4, 4);
+        px(g, 0x6a82a0, rx + 1, ry + 1, 1, 1);
+      }
       g.generateTexture('tile_wall', t, t);
       g.destroy();
     }
 
-    // Spike up
+    // Spike up — row of spikes with floor base
     {
       const g = this.add.graphics();
-      g.fillStyle(0xff5050, 1);
-      g.fillTriangle(0, t, t / 4, 4, t / 2, t);
-      g.fillTriangle(t / 4, t, t / 2, 4, 3 * t / 4, t);
-      g.fillTriangle(t / 2, t, 3 * t / 4, 4, t, t);
-      g.fillStyle(0xffffff, 0.6);
-      g.fillRect(t / 4 - 1, t - 4, 1, 3);
-      g.fillRect(t / 2 - 1, t - 4, 1, 3);
-      g.fillRect(3 * t / 4 - 1, t - 4, 1, 3);
+      // floor base
+      px(g, 0x222a36, 0, t - 12, t, 12);
+      px(g, 0x445566, 0, t - 12, t, 2);
+      // spikes
+      const spikes = 4;
+      const sw = t / spikes;
+      for (let i = 0; i < spikes; i++) {
+        const cx = i * sw + sw / 2;
+        // shadow side
+        g.fillStyle(0x802020, 1);
+        g.fillTriangle(i * sw + 4, t - 8, cx, 12, cx, t - 8);
+        // bright side
+        g.fillStyle(0xff5050, 1);
+        g.fillTriangle(cx, 12, (i + 1) * sw - 4, t - 8, cx, t - 8);
+        // line-art outline
+        g.lineStyle(2, 0x2a0808, 1);
+        g.beginPath();
+        g.moveTo(i * sw + 4, t - 8);
+        g.lineTo(cx, 12);
+        g.lineTo((i + 1) * sw - 4, t - 8);
+        g.strokePath();
+        // glint
+        px(g, 0xffd0d0, cx, 16, 1, 8);
+      }
       g.generateTexture('tile_spike_up', t, t);
       g.destroy();
     }
 
-    // Spike down
+    // Spike down — mirror
     {
       const g = this.add.graphics();
-      g.fillStyle(0xff5050, 1);
-      g.fillTriangle(0, 0, t / 4, t - 4, t / 2, 0);
-      g.fillTriangle(t / 4, 0, t / 2, t - 4, 3 * t / 4, 0);
-      g.fillTriangle(t / 2, 0, 3 * t / 4, t - 4, t, 0);
-      g.fillStyle(0xffffff, 0.6);
-      g.fillRect(t / 4 - 1, 1, 1, 3);
-      g.fillRect(t / 2 - 1, 1, 1, 3);
-      g.fillRect(3 * t / 4 - 1, 1, 1, 3);
+      px(g, 0x222a36, 0, 0, t, 12);
+      px(g, 0x445566, 0, 10, t, 2);
+      const spikes = 4;
+      const sw = t / spikes;
+      for (let i = 0; i < spikes; i++) {
+        const cx = i * sw + sw / 2;
+        g.fillStyle(0x802020, 1);
+        g.fillTriangle(i * sw + 4, 8, cx, t - 12, cx, 8);
+        g.fillStyle(0xff5050, 1);
+        g.fillTriangle(cx, t - 12, (i + 1) * sw - 4, 8, cx, 8);
+        g.lineStyle(2, 0x2a0808, 1);
+        g.beginPath();
+        g.moveTo(i * sw + 4, 8);
+        g.lineTo(cx, t - 12);
+        g.lineTo((i + 1) * sw - 4, 8);
+        g.strokePath();
+        px(g, 0xffd0d0, cx, t - 24, 1, 8);
+      }
       g.generateTexture('tile_spike_down', t, t);
       g.destroy();
     }
 
-    // Crew sprite (16x16)
+    // Crew sprite — 48x56 detailed pixel-art astronaut with helmet visor
     {
-      const w = 12, h = 16;
+      const w = 48, h = 56;
       const g = this.add.graphics();
-      g.fillStyle(0xfff0a0, 1);
-      g.fillRect(3, 0, 6, 5);          // head
-      g.fillStyle(0x222244, 1);
-      g.fillRect(4, 1, 1, 1);          // eye
-      g.fillRect(7, 1, 1, 1);
+      // ====== Helmet ======
+      // helmet base (rounded rect approximated)
+      g.fillStyle(0xe8eef5, 1);
+      g.fillRect(8, 4, 32, 22);
+      g.fillRect(6, 8, 36, 16);
+      // helmet outline (line-art)
+      g.lineStyle(2, 0x101820, 1);
+      g.strokeRect(8, 4, 32, 22);
+      g.strokeRect(6, 8, 36, 16);
+      // visor cavity
+      g.fillStyle(0x0a1830, 1);
+      g.fillRect(11, 9, 26, 12);
+      // visor glass — gradient bands
+      g.fillStyle(0x2a8fcf, 1);
+      g.fillRect(12, 10, 24, 10);
       g.fillStyle(0x66ddff, 1);
-      g.fillRect(2, 5, 8, 7);          // torso
-      g.fillStyle(0x224458, 1);
-      g.fillRect(2, 12, 3, 4);         // legs
-      g.fillRect(7, 12, 3, 4);
+      g.fillRect(12, 10, 24, 4);
+      // visor highlight streak
+      px(g, 0xffffff, 14, 11, 6, 1);
+      px(g, 0xffffff, 14, 12, 3, 1);
+      // visor outline
+      g.lineStyle(1, 0x101820, 1);
+      g.strokeRect(11, 9, 26, 12);
+      // helmet rivets
+      px(g, 0x808a98, 9, 13, 2, 2);
+      px(g, 0x808a98, 37, 13, 2, 2);
+      // ====== Suit / torso ======
+      g.fillStyle(0xc94a3a, 1);            // suit red-orange
+      g.fillRect(8, 26, 32, 18);
+      g.fillStyle(0xa53224, 1);            // suit shadow
+      g.fillRect(8, 38, 32, 6);
+      g.lineStyle(2, 0x2a0a08, 1);
+      g.strokeRect(8, 26, 32, 18);
+      // chest plate
+      g.fillStyle(0xe8eef5, 1);
+      g.fillRect(18, 28, 12, 10);
+      g.lineStyle(1, 0x101820, 1);
+      g.strokeRect(18, 28, 12, 10);
+      // chest tabs / lights
+      px(g, 0x66ff88, 20, 30, 2, 2);
+      px(g, 0xfff0a0, 24, 30, 2, 2);
+      px(g, 0xff6060, 26, 34, 2, 2);
+      // shoulder caps
+      g.fillStyle(0xe8eef5, 1);
+      g.fillRect(6, 26, 4, 6);
+      g.fillRect(38, 26, 4, 6);
+      g.lineStyle(1, 0x101820, 1);
+      g.strokeRect(6, 26, 4, 6);
+      g.strokeRect(38, 26, 4, 6);
+      // arms
+      g.fillStyle(0xc94a3a, 1);
+      g.fillRect(4, 30, 6, 14);
+      g.fillRect(38, 30, 6, 14);
+      g.lineStyle(2, 0x2a0a08, 1);
+      g.strokeRect(4, 30, 6, 14);
+      g.strokeRect(38, 30, 6, 14);
+      // gloves
+      g.fillStyle(0xe8eef5, 1);
+      g.fillRect(3, 42, 8, 6);
+      g.fillRect(37, 42, 8, 6);
+      g.lineStyle(1, 0x101820, 1);
+      g.strokeRect(3, 42, 8, 6);
+      g.strokeRect(37, 42, 8, 6);
+      // belt
+      g.fillStyle(0x2a3040, 1);
+      g.fillRect(8, 42, 32, 4);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(8, 42, 32, 4);
+      px(g, 0xfff0a0, 22, 43, 4, 2);  // belt buckle
+      // ====== Legs / boots ======
+      g.fillStyle(0xc94a3a, 1);
+      g.fillRect(11, 46, 10, 6);
+      g.fillRect(27, 46, 10, 6);
+      g.lineStyle(2, 0x2a0a08, 1);
+      g.strokeRect(11, 46, 10, 6);
+      g.strokeRect(27, 46, 10, 6);
+      // boots
+      g.fillStyle(0x202028, 1);
+      g.fillRect(9, 50, 14, 6);
+      g.fillRect(25, 50, 14, 6);
+      g.lineStyle(2, 0x000000, 1);
+      g.strokeRect(9, 50, 14, 6);
+      g.strokeRect(25, 50, 14, 6);
+      // boot toe highlight
+      px(g, 0x4c5466, 21, 52, 2, 2);
+      px(g, 0x4c5466, 25, 52, 2, 2);
       g.generateTexture('crew', w, h);
       g.destroy();
     }
 
-    // Engineering terminal
+    // Engineering / Shop terminal — console with screen, keyboard, status lights
     {
       const g = this.add.graphics();
-      g.fillStyle(0x223a52, 1);
-      g.fillRect(2, 6, t - 4, t - 6);
+      // base box
+      g.fillStyle(0x1a2638, 1);
+      g.fillRect(8, 16, t - 16, t - 24);
+      // line-art outline
+      g.lineStyle(2, 0x000000, 1);
+      g.strokeRect(8, 16, t - 16, t - 24);
+      // top bezel
+      g.fillStyle(0x2c3e58, 1);
+      g.fillRect(8, 16, t - 16, 8);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(8, 16, t - 16, 8);
+      // monitor cavity
+      g.fillStyle(0x081020, 1);
+      g.fillRect(16, 26, t - 32, 36);
+      g.lineStyle(2, 0x000000, 1);
+      g.strokeRect(16, 26, t - 32, 36);
+      // screen content — graph bars + scan-lines
       g.fillStyle(0x88ddff, 1);
-      g.fillRect(4, 8, t - 8, 8);
+      g.fillRect(20, 30, 10, 28);
+      g.fillRect(34, 38, 10, 20);
+      g.fillRect(48, 32, 10, 26);
+      g.fillRect(62, 44, 10, 14);
       g.fillStyle(0xfff0a0, 1);
-      g.fillRect(6, 18, 2, 2);
-      g.fillRect(10, 18, 2, 2);
-      g.fillRect(14, 18, 2, 2);
+      g.fillRect(20, 30, 10, 4);
+      g.fillRect(34, 38, 10, 4);
+      g.fillRect(48, 32, 10, 4);
+      g.fillRect(62, 44, 10, 4);
+      // scan lines
+      g.fillStyle(0x000000, 0.25);
+      for (let y = 28; y < 60; y += 3) g.fillRect(16, y, t - 32, 1);
+      // status LEDs
+      px(g, 0x66ff88, 14, 20, 3, 3);
+      px(g, 0xfff0a0, 22, 20, 3, 3);
+      px(g, 0xff6060, 30, 20, 3, 3);
+      // keyboard tray
+      g.fillStyle(0x223450, 1);
+      g.fillRect(12, 66, t - 24, 14);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(12, 66, t - 24, 14);
+      // keys
+      for (let kx = 0; kx < 6; kx++) {
+        const x = 16 + kx * 11;
+        px(g, 0x445672, x, 70, 8, 6);
+        px(g, 0x6a82a0, x, 70, 8, 1);
+      }
+      // base shadow
+      g.fillStyle(0x0a1018, 1);
+      g.fillRect(8, t - 8, t - 16, 4);
       g.generateTexture('prop_engineering', t, t);
       g.destroy();
     }
 
-    // Airlock
+    // Airlock door — heavy door with porthole, hazard stripes, lock indicator
     {
       const g = this.add.graphics();
+      // frame
       g.fillStyle(0x445566, 1);
       g.fillRect(0, 0, t, t);
-      g.fillStyle(0x223344, 1);
-      g.fillRect(4, 2, t - 8, t - 2);
+      g.lineStyle(3, 0x000000, 1);
+      g.strokeRect(0, 0, t, t);
+      // door panel
+      g.fillStyle(0x2a3a4c, 1);
+      g.fillRect(10, 6, t - 20, t - 12);
+      g.lineStyle(2, 0x101820, 1);
+      g.strokeRect(10, 6, t - 20, t - 12);
+      // hazard stripes top + bottom
+      const stripeY1 = 12;
+      const stripeY2 = t - 18;
+      for (let s = 0; s < 5; s++) {
+        const sx = 14 + s * 14;
+        g.fillStyle(0xfff0a0, 1);
+        g.fillTriangle(sx, stripeY1, sx + 8, stripeY1, sx + 4, stripeY1 + 6);
+        g.fillStyle(0x202028, 1);
+        g.fillTriangle(sx + 4, stripeY1 + 6, sx + 8, stripeY1, sx + 12, stripeY1 + 6);
+        g.fillStyle(0xfff0a0, 1);
+        g.fillTriangle(sx, stripeY2, sx + 8, stripeY2, sx + 4, stripeY2 - 6);
+        g.fillStyle(0x202028, 1);
+        g.fillTriangle(sx + 4, stripeY2 - 6, sx + 8, stripeY2, sx + 12, stripeY2 - 6);
+      }
+      // central seam (sliding door split)
+      g.fillStyle(0x101820, 1);
+      g.fillRect(t / 2 - 1, 22, 2, t - 44);
+      // porthole (round-ish glass)
+      g.fillStyle(0x0a2030, 1);
+      g.fillRect(t / 2 - 12, t / 2 - 12, 24, 24);
       g.fillStyle(0x66ddff, 1);
-      g.fillRect(t / 2 - 1, 4, 2, t - 8);
-      g.fillStyle(0xfff0a0, 1);
-      g.fillRect(6, t - 6, 4, 2);
+      g.fillRect(t / 2 - 10, t / 2 - 10, 20, 20);
+      g.lineStyle(2, 0x101820, 1);
+      g.strokeRect(t / 2 - 12, t / 2 - 12, 24, 24);
+      // glass highlight
+      px(g, 0xffffff, t / 2 - 8, t / 2 - 8, 4, 1);
+      px(g, 0xffffff, t / 2 - 8, t / 2 - 6, 2, 1);
+      // lock indicator
+      px(g, 0x66ff88, 14, t - 12, 4, 4);
+      // outline pulse
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(14, t - 12, 4, 4);
       g.generateTexture('prop_airlock', t, t);
       g.destroy();
     }
 
-    // Repair (cross / med-pad)
+    // Repair / med-pad — green cross with tech frame, pulse rings
     {
       const g = this.add.graphics();
-      g.fillStyle(0x202028, 1);
-      g.fillRect(2, 2, t - 4, t - 4);
+      // base
+      g.fillStyle(0x14181f, 1);
+      g.fillRect(6, 6, t - 12, t - 12);
+      g.lineStyle(3, 0x000000, 1);
+      g.strokeRect(6, 6, t - 12, t - 12);
+      // inner panel
+      g.fillStyle(0x1a3024, 1);
+      g.fillRect(12, 12, t - 24, t - 24);
+      g.lineStyle(1, 0x66ff88, 0.5);
+      g.strokeRect(12, 12, t - 24, t - 24);
+      // pulse ring
+      g.lineStyle(2, 0x66ff88, 0.25);
+      g.strokeRect(20, 20, t - 40, t - 40);
+      // cross — vertical bar
       g.fillStyle(0x66ff88, 1);
-      g.fillRect(t / 2 - 2, 6, 4, 12);
-      g.fillRect(6, t / 2 - 2, 12, 4);
+      g.fillRect(t / 2 - 6, 24, 12, t - 48);
+      g.fillStyle(0xa8ffc0, 1);
+      g.fillRect(t / 2 - 5, 24, 4, t - 48);
+      g.lineStyle(2, 0x142410, 1);
+      g.strokeRect(t / 2 - 6, 24, 12, t - 48);
+      // cross — horizontal bar
+      g.fillStyle(0x66ff88, 1);
+      g.fillRect(24, t / 2 - 6, t - 48, 12);
+      g.fillStyle(0xa8ffc0, 1);
+      g.fillRect(24, t / 2 - 5, t - 48, 4);
+      g.lineStyle(2, 0x142410, 1);
+      g.strokeRect(24, t / 2 - 6, t - 48, 12);
+      // corner LEDs
+      px(g, 0x66ff88, 10, 10, 3, 3);
+      px(g, 0x66ff88, t - 13, 10, 3, 3);
+      px(g, 0x66ff88, 10, t - 13, 3, 3);
+      px(g, 0x66ff88, t - 13, t - 13, 3, 3);
       g.generateTexture('prop_repair', t, t);
       g.destroy();
     }
 
-    // Checkpoint (flag)
+    // Checkpoint flag — pole and triangular flag, base plate
     {
       const g = this.add.graphics();
+      // base plate
       g.fillStyle(0x202028, 1);
-      g.fillRect(11, 4, 2, t - 6);
+      g.fillRect(20, t - 14, t - 40, 8);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(20, t - 14, t - 40, 8);
+      // pole
+      g.fillStyle(0x808a98, 1);
+      g.fillRect(t / 2 - 2, 16, 4, t - 30);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(t / 2 - 2, 16, 4, t - 30);
+      // pole highlight
+      px(g, 0xc8d4e4, t / 2 - 1, 18, 1, t - 36);
+      // flag
       g.fillStyle(0xffe060, 1);
-      g.fillTriangle(13, 4, 21, 8, 13, 12);
-      g.fillStyle(0x88aacc, 1);
-      g.fillRect(8, t - 4, 8, 2);
+      g.fillTriangle(t / 2 + 2, 16, t / 2 + 32, 28, t / 2 + 2, 40);
+      g.fillStyle(0xb09020, 1);
+      g.fillTriangle(t / 2 + 2, 28, t / 2 + 32, 28, t / 2 + 2, 40);
+      g.lineStyle(2, 0x402a00, 1);
+      g.beginPath();
+      g.moveTo(t / 2 + 2, 16);
+      g.lineTo(t / 2 + 32, 28);
+      g.lineTo(t / 2 + 2, 40);
+      g.strokePath();
       g.generateTexture('prop_checkpoint', t, t);
       g.destroy();
     }
 
-    // Insurance terminal (shield with check)
+    // Insurance terminal — kiosk with shield emblem and check mark
     {
       const g = this.add.graphics();
+      // base frame
       g.fillStyle(0x102030, 1);
-      g.fillRect(2, 2, t - 4, t - 4);
+      g.fillRect(8, 8, t - 16, t - 16);
+      g.lineStyle(3, 0x000000, 1);
+      g.strokeRect(8, 8, t - 16, t - 16);
+      // header bar
+      g.fillStyle(0x1a3450, 1);
+      g.fillRect(8, 8, t - 16, 14);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(8, 8, t - 16, 14);
+      // header text dots (tiny)
+      px(g, 0xfff0a0, 14, 14, 2, 2);
+      px(g, 0xfff0a0, 18, 14, 2, 2);
+      px(g, 0xfff0a0, 22, 14, 2, 2);
+      // screen background
+      g.fillStyle(0x081020, 1);
+      g.fillRect(14, 26, t - 28, t - 50);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(14, 26, t - 28, t - 50);
+      // shield body
+      g.fillStyle(0x1a4a78, 1);
+      g.fillRect(t / 2 - 18, 32, 36, 28);
+      g.fillTriangle(t / 2 - 18, 60, t / 2 + 18, 60, t / 2, 78);
+      // shield highlight
       g.fillStyle(0x66ddff, 1);
-      g.fillRect(7, 4, t - 14, 12);
-      g.fillTriangle(7, 16, t - 7, 16, t / 2, t - 4);
-      g.lineStyle(2, 0x0a1830, 1);
+      g.fillRect(t / 2 - 18, 32, 36, 8);
+      g.fillTriangle(t / 2 - 18, 60, t / 2, 60, t / 2 - 8, 70);
+      // shield outline
+      g.lineStyle(2, 0x051828, 1);
+      g.strokeRect(t / 2 - 18, 32, 36, 28);
       g.beginPath();
-      g.moveTo(8, 10);
-      g.lineTo(11, 13);
-      g.lineTo(t - 8, 7);
+      g.moveTo(t / 2 - 18, 60);
+      g.lineTo(t / 2, 78);
+      g.lineTo(t / 2 + 18, 60);
       g.strokePath();
+      // check mark inside shield
+      g.lineStyle(4, 0x88ffaa, 1);
+      g.beginPath();
+      g.moveTo(t / 2 - 12, 50);
+      g.lineTo(t / 2 - 4, 60);
+      g.lineTo(t / 2 + 14, 40);
+      g.strokePath();
+      g.lineStyle(1, 0x103820, 1);
+      g.beginPath();
+      g.moveTo(t / 2 - 12, 50);
+      g.lineTo(t / 2 - 4, 60);
+      g.lineTo(t / 2 + 14, 40);
+      g.strokePath();
+      // base panel
+      g.fillStyle(0x18283a, 1);
+      g.fillRect(8, t - 16, t - 16, 8);
+      g.lineStyle(1, 0x000000, 1);
+      g.strokeRect(8, t - 16, t - 16, 8);
       g.generateTexture('prop_insurance', t, t);
       g.destroy();
     }
 
-    // Mission terminal (clipboard / datapad)
+    // Mission terminal — clipboard / datapad with paper, paperclip, alert badge
     {
       const g = this.add.graphics();
+      // clipboard backing
       g.fillStyle(0x4a3320, 1);
-      g.fillRect(4, 4, t - 8, t - 6);
-      g.fillStyle(0xffaa50, 1);
-      g.fillRect(6, 6, t - 12, t - 10);
-      g.fillStyle(0x4a3320, 1);
-      g.fillRect(8, 9, t - 16, 1);
-      g.fillRect(8, 13, t - 16, 1);
-      g.fillRect(8, 17, t - 16, 1);
+      g.fillRect(10, 10, t - 20, t - 20);
+      g.lineStyle(3, 0x000000, 1);
+      g.strokeRect(10, 10, t - 20, t - 20);
+      // paper sheet
+      g.fillStyle(0xf2dcc0, 1);
+      g.fillRect(16, 18, t - 32, t - 36);
+      g.lineStyle(1, 0x4a3320, 1);
+      g.strokeRect(16, 18, t - 32, t - 36);
+      // paper lines (text simulation)
+      g.fillStyle(0x6a4a30, 1);
+      for (let i = 0; i < 6; i++) {
+        const ry = 26 + i * 8;
+        const lw = i === 0 ? 36 : (32 + Math.sin(i) * 12);
+        g.fillRect(20, ry, lw, 2);
+      }
+      // header underline
+      g.fillStyle(0x000000, 1);
+      g.fillRect(20, 30, 36, 1);
+      // checkbox bullets
+      for (let i = 0; i < 3; i++) {
+        const ry = 50 + i * 8;
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(18, ry, 4, 4);
+        g.lineStyle(1, 0x000000, 1);
+        g.strokeRect(18, ry, 4, 4);
+      }
+      // first checkbox checked
+      g.lineStyle(2, 0x66ff88, 1);
+      g.beginPath();
+      g.moveTo(19, 53);
+      g.lineTo(20, 54);
+      g.lineTo(22, 51);
+      g.strokePath();
+      // paperclip on top
+      g.lineStyle(2, 0xc8d4e4, 1);
+      g.strokeRect(t / 2 - 6, 8, 12, 14);
+      g.lineStyle(1, 0x808a98, 1);
+      g.strokeRect(t / 2 - 4, 10, 8, 10);
+      // alert badge top-right
       g.fillStyle(0xff5050, 1);
-      g.fillRect(t - 8, 5, 3, 3);
+      g.fillRect(t - 22, 14, 12, 12);
+      g.lineStyle(1, 0x4a0a0a, 1);
+      g.strokeRect(t - 22, 14, 12, 12);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(t - 17, 16, 2, 6);
+      g.fillRect(t - 17, 23, 2, 2);
       g.generateTexture('prop_mission', t, t);
       g.destroy();
     }

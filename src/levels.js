@@ -3,7 +3,7 @@ export const LEVELS = {
     id: 'starbase_bay_1',
     width: 40,
     height: 25,
-    tileSize: 24,
+    tileSize: 96,
     spawn: { x: 35, y: 22, gravity: 'down' },
     tiles: [
       '########################################',
