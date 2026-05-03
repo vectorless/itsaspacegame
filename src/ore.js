@@ -93,16 +93,9 @@ export function updateOre(scene, dtSec) {
 
     if (o.locked) {
       const d = Math.sqrt(d2) || 0.001;
-      const ax = (dx / d) * MAGNET.accel;
-      const ay = (dy / d) * MAGNET.accel;
-      o.body.velocity.x += ax * dtSec;
-      o.body.velocity.y += ay * dtSec;
-      const sp = Math.hypot(o.body.velocity.x, o.body.velocity.y);
-      if (sp > MAGNET.maxOreSpeed) {
-        const k = MAGNET.maxOreSpeed / sp;
-        o.body.velocity.x *= k;
-        o.body.velocity.y *= k;
-      }
+      const speed = MAGNET.maxOreSpeed;
+      o.body.velocity.x = (dx / d) * speed;
+      o.body.velocity.y = (dy / d) * speed;
     }
   });
 }

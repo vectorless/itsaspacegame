@@ -408,6 +408,7 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.collectables) {
       this.collectables.children.iterate((co) => {
         if (!co || !co.active || !co.body) return;
+        if (co.locked) return;
         const consumed = pullBody(co);
         if (consumed && co.active && co.body) { co.disableBody(true, true); co.destroy(); }
       });
