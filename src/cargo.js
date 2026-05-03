@@ -9,12 +9,16 @@ export function freshAmmo() {
   return { blaster: Infinity, mining_laser: Infinity };
 }
 
+function newSlot(weaponId = null) {
+  return { weaponId, active: false, lastFire: 0 };
+}
+
 export function autoEquipFromCargo(state) {
   const ship = SHIPS[state.currentShipId];
   const hp = {};
-  ship.hardpoints.forEach((h) => { hp[h.id] = null; });
+  ship.hardpoints.forEach((h) => { hp[h.id] = newSlot(); });
   ship.hardpoints.forEach((h, i) => {
-    if (i < state.cargo.weapons.length) hp[h.id] = state.cargo.weapons[i];
+    if (i < state.cargo.weapons.length) hp[h.id] = newSlot(state.cargo.weapons[i]);
   });
   state.hardpoints = hp;
 }
@@ -22,7 +26,17 @@ export function autoEquipFromCargo(state) {
 export function getEquippedWeapons(state) {
   if (!state.hardpoints) return [];
   const ship = SHIPS[state.currentShipId];
-  return ship.hardpoints.map((h) => state.hardpoints[h.id]).filter(Boolean);
+  return ship.hardpoints
+    .map((h) => state.hardpoints[h.id]?.weaponId)
+    .filter(Boolean);
+}
+
+export function getActiveSlots(state) {
+  if (!state.hardpoints) return [];
+  const ship = SHIPS[state.currentShipId];
+  return ship.hardpoints
+    .map((h) => state.hardpoints[h.id])
+    .filter((s) => s && s.active && s.weaponId);
 }
 
 export function ensureHardpointsValid(state) {
@@ -36,11 +50,25 @@ export function ensureHardpointsValid(state) {
     if (!validIds.has(id)) delete state.hardpoints[id];
   }
   for (const h of ship.hardpoints) {
-    if (state.hardpoints[h.id] === undefined) state.hardpoints[h.id] = null;
+    const cur = state.hardpoints[h.id];
+    if (cur === undefined || cur === null) {
+      state.hardpoints[h.id] = newSlot();
+    } else if (typeof cur === 'string') {
+      state.hardpoints[h.id] = newSlot(cur);
+    } else if (typeof cur !== 'object') {
+      state.hardpoints[h.id] = newSlot();
+    } else {
+      if (cur.weaponId === undefined) cur.weaponId = null;
+      if (cur.active === undefined) cur.active = false;
+      if (cur.lastFire === undefined) cur.lastFire = 0;
+    }
   }
   for (const h of ship.hardpoints) {
-    const w = state.hardpoints[h.id];
-    if (w && !state.cargo.weapons.includes(w)) state.hardpoints[h.id] = null;
+    const slot = state.hardpoints[h.id];
+    if (slot.weaponId && !state.cargo.weapons.includes(slot.weaponId)) {
+      slot.weaponId = null;
+      slot.active = false;
+    }
   }
 }
 

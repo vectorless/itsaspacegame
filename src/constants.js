@@ -331,3 +331,26 @@ export const LEVEL = {
   asteroidsPerLevel: 6,
   enemySpawnSpeedup: 0.85
 };
+
+export const WEAPON_UPGRADES = {
+  damage: {
+    label: 'Damage',
+    maxLevel: 5,
+    apply: (base, lvl) => base + lvl,
+    cost: (curLvl) => 50 * Math.pow(2, curLvl)
+  },
+  rate: {
+    label: 'Rate of Fire',
+    maxLevel: 5,
+    apply: (cd, lvl) => Math.max(60, cd * Math.pow(0.85, lvl)),
+    cost: (curLvl) => 80 * Math.pow(2, curLvl)
+  },
+  range: {
+    label: 'Range / Speed',
+    maxLevel: 5,
+    apply: (speed, lvl) => speed * (1 + 0.15 * lvl),
+    cost: (curLvl) => 60 * Math.pow(2, curLvl)
+  }
+};
+
+export const AUTO_AIM_RANGE = 800;

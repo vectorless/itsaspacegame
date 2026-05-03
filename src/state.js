@@ -3,6 +3,14 @@ import { autoEquipFromCargo } from './cargo.js';
 import { MISSIONS } from './missions.js';
 import { WEAPONS } from './weapons.js';
 
+function freshWeaponUpgrades() {
+  const out = {};
+  for (const id of Object.keys(WEAPONS)) {
+    out[id] = { damage: 0, rate: 0, range: 0, special: 0 };
+  }
+  return out;
+}
+
 export function freshGameState() {
   const shipId = 'cruiser';
   const ship = SHIPS[shipId];
@@ -31,10 +39,27 @@ export function freshGameState() {
     missionProgress: {},
     starbasePickups: [],
     insurance: { active: false, claimsCount: 0 },
-    lastInsurancePayout: 0
+    lastInsurancePayout: 0,
+    weaponUpgrades: freshWeaponUpgrades(),
+    autoAimEnabled: true
   };
   autoEquipFromCargo(state);
   return state;
+}
+
+export function ensureWeaponUpgrades(state) {
+  if (!state.weaponUpgrades) state.weaponUpgrades = freshWeaponUpgrades();
+  for (const id of Object.keys(WEAPONS)) {
+    if (!state.weaponUpgrades[id]) {
+      state.weaponUpgrades[id] = { damage: 0, rate: 0, range: 0, special: 0 };
+    } else {
+      const u = state.weaponUpgrades[id];
+      if (u.damage === undefined) u.damage = 0;
+      if (u.rate === undefined) u.rate = 0;
+      if (u.range === undefined) u.range = 0;
+      if (u.special === undefined) u.special = 0;
+    }
+  }
 }
 
 export function ensureGameState(registry) {
@@ -43,6 +68,8 @@ export function ensureGameState(registry) {
     state = freshGameState();
     registry.set('gameState', state);
   }
+  ensureWeaponUpgrades(state);
+  if (state.autoAimEnabled === undefined) state.autoAimEnabled = true;
   return state;
 }
 
@@ -92,6 +119,9 @@ export function resetAfterDeath(state) {
 
   state.credits += payout;
   state.lastInsurancePayout = payout;
+
+  if (state.autoAimEnabled === undefined) state.autoAimEnabled = true;
+  ensureWeaponUpgrades(state);
 
   autoEquipFromCargo(state);
 }
