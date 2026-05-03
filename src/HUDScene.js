@@ -29,7 +29,7 @@ export default class HUDScene extends Phaser.Scene {
     this.hullBar = this.add.rectangle(13, 63, BAR_W - 2, BAR_H - 2, COLORS.hullBar, 0.95)
       .setOrigin(0, 0);
 
-    this.energyLabel = this.add.text(12, 78, 'ENERGY', { ...style, color: '#88ffaa' });
+    this.energyLabel = this.add.text(12, 78, 'CAPACITOR', { ...style, color: '#88ffaa' });
     this.energyBarBg = this.add.rectangle(12, 96, BAR_W, BAR_H, 0x102818, 0.85)
       .setOrigin(0, 0).setStrokeStyle(1, 0x3a7a4a);
     this.energyBar = this.add.rectangle(13, 97, BAR_W - 2, BAR_H - 2, 0x66ff88, 0.95)
@@ -79,7 +79,7 @@ export default class HUDScene extends Phaser.Scene {
 
     const eFrac = Phaser.Math.Clamp((state.energy ?? 0) / (state.maxEnergy ?? 100), 0, 1);
     this.energyBar.width = (BAR_W - 2) * eFrac;
-    this.energyLabel.setText(`ENERGY  ${Math.round(state.energy ?? 0)} / ${state.maxEnergy ?? 100}`);
+    this.energyLabel.setText(`CAPACITOR  ${Math.round(state.energy ?? 0)} / ${state.maxEnergy ?? 100}`);
     this.chargingText.setText(state.charging ? '◆ CHARGING' : '');
 
     this.shipText.setText(`Ship:   ${ship.name}`);

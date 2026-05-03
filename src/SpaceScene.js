@@ -742,6 +742,16 @@ export default class SpaceScene extends Phaser.Scene {
     if (collected > 0) this.cameras.main.flash(120, 200, 220, 80);
   }
 
+  regenEnergy(dtSec) {
+    if (this.gameState.gameOver) return;
+    if (this.gameState.charging) return;
+    if (this.gameState.energy >= this.gameState.maxEnergy) return;
+    this.gameState.energy = Math.min(
+      this.gameState.maxEnergy,
+      this.gameState.energy + ENERGY.passiveRegenPerSec * dtSec
+    );
+  }
+
   regenShield(dtSec) {
     if (this.gameState.gameOver) return;
     if (this.time.now - this.lastHitTime < SHIP.shieldRegenDelayMs) return;
@@ -936,6 +946,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.updatePortal();
     this.applyBlackholeGravity(dt);
     this.regenShield(dt);
+    this.regenEnergy(dt);
 
     this.gameState.speed = this.controller.speed();
   }

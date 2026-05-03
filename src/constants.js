@@ -315,7 +315,8 @@ export const ENERGY = {
   max: 100,
   shieldRegenCost: 1,
   chargePerSec: 35,
-  laserCostPerSec: 30
+  laserCostPerSec: 30,
+  passiveRegenPerSec: 2
 };
 
 export const MINING_LASER = {
